@@ -1,0 +1,8 @@
+- Two prompts, one that outlines the functionality of an MCP agent and one specifying run conditions
+- Prompt one: creation of MCP Agent:
+    - Specify MCP functionalities
+    - What do we need the agent to be able to do?
+- Prompt two: prompt to the MCP agent for actions
+    - Clear instructions for execution
+    - what MCP functions it needs to call when
+    - What the agent needs to do to acheive the task
