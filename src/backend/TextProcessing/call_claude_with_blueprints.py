@@ -4,16 +4,23 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import pathlib
 import sys
-import urllib.error
-import urllib.request
 
-API_URL = "https://api.anthropic.com/v1/messages"
-MODEL = "claude-3-opus-20240229"
-ANTHROPIC_VERSION = "2023-06-01"
+try:
+    from langchain_anthropic import ChatAnthropic
+    from langchain_core.messages import HumanMessage, SystemMessage
+except ImportError as exc:  # pragma: no cover - import guard
+    raise SystemExit(
+        "LangChain packages missing. Install with "
+        "`pip install langchain-anthropic langchain-core`."
+    ) from exc
+
+MODEL = "claude-opus-4-1-20250805"
+ENV_FILE_NAME = ".env"
+ENV_KEY = "ANTHROPIC_API_KEY"
+DEFAULT_TEST_OUTPUT = pathlib.Path("tests/claude_response.txt")
 
 
 def read_template(path: pathlib.Path) -> str:
@@ -48,7 +55,7 @@ def build_agent_instruction_prompt(user_prompt: str, agent_template: str) -> str
     )
 
 
-def build_payload(user_prompt: str, blueprint: str, agent_template: str) -> str:
+def build_messages(user_prompt: str, blueprint: str, agent_template: str) -> tuple[str, str]:
     system_prompt = (
         "You are an MCP prompt engineer. Given template blueprints for defining "
         "a new MCP and for guiding its connected agent, produce two filled-out "
@@ -64,38 +71,72 @@ def build_payload(user_prompt: str, blueprint: str, agent_template: str) -> str:
         "== Task 2: MCP Agent Instructions ==\n"
         f"{agent_prompt}"
     )
-
-    body = {
-        "model": MODEL,
-        "max_tokens": 1500,
-        "system": system_prompt,
-        "messages": [
-            {
-                "role": "user",
-                "content": [{"type": "text", "text": user_message}],
-            }
-        ],
-    }
-    return json.dumps(body)
+    return system_prompt, user_message
 
 
-def call_claude(payload: str, api_key: str) -> str:
-    req = urllib.request.Request(
-        API_URL,
-        data=payload.encode("utf-8"),
-        headers={
-            "anthropic-version": ANTHROPIC_VERSION,
-            "content-type": "application/json",
-            "x-api-key": api_key,
-        },
-        method="POST",
-    )
+def call_claude_with_langchain(
+    system_prompt: str,
+    user_message: str,
+    *,
+    api_key: str,
+    model: str,
+    max_tokens: int,
+) -> str:
     try:
-        with urllib.request.urlopen(req) as resp:
-            return resp.read().decode("utf-8")
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        raise SystemExit(f"Claude API error ({exc.code}): {detail}")
+        llm = ChatAnthropic(
+            model=model,
+            anthropic_api_key=api_key,
+            max_tokens=max_tokens,
+        )
+    except Exception as exc:
+        raise SystemExit(f"Failed to initialize ChatAnthropic: {exc}") from exc
+
+    response = llm.invoke(
+        [SystemMessage(content=system_prompt), HumanMessage(content=user_message)]
+    )
+
+    content = response.content
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        chunks = []
+        for part in content:
+            if isinstance(part, dict) and part.get("type") == "text":
+                chunks.append(part.get("text", ""))
+            elif isinstance(part, str):
+                chunks.append(part)
+        return "\n".join(filter(None, chunks)).strip()
+
+    return str(content)
+
+
+def find_env_file(start_dir: pathlib.Path) -> pathlib.Path | None:
+    """Search upwards from start_dir for a .env file."""
+    for path in [start_dir, *start_dir.parents]:
+        candidate = path / ENV_FILE_NAME
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def load_env_value_from_file(key: str, start_dir: pathlib.Path) -> str | None:
+    """Return the value for `key` from the nearest .env file."""
+    env_path = find_env_file(start_dir)
+    if not env_path:
+        return None
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        key_part, sep, value_part = line.partition("=")
+        if sep and key_part.strip() == key:
+            value = value_part.strip().strip("\"'")
+            if value:
+                os.environ.setdefault(key, value)
+                return value
+    return None
 
 
 def parse_args() -> argparse.Namespace:
@@ -117,28 +158,53 @@ def parse_args() -> argparse.Namespace:
         default=1500,
         help="Maximum tokens for Claude response (default: 1500).",
     )
+    parser.add_argument(
+        "-t",
+        "--test-output",
+        nargs="?",
+        const=str(DEFAULT_TEST_OUTPUT),
+        metavar="FILE",
+        help=(
+            "When set, write Claude's response to FILE for testing "
+            "(default: tests/claude_response.txt)."
+        ),
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise SystemExit("ANTHROPIC_API_KEY is not set in the environment.")
-
     script_dir = pathlib.Path(__file__).resolve().parent
+
+    api_key = os.environ.get(ENV_KEY)
+    if not api_key:
+        api_key = load_env_value_from_file(ENV_KEY, script_dir)
+
+    if not api_key:
+        raise SystemExit(
+            "ANTHROPIC_API_KEY is not set. Export it or add it to a nearby .env file."
+        )
+
     blueprint_template = read_template(script_dir / "PromptFormat_MCPBlueprint.md")
     agent_template = read_template(script_dir / "PromptFormat_AgentRun.md")
 
-    payload = build_payload(args.user_prompt, blueprint_template, agent_template)
-
-    # Allow overrides via CLI arguments without reconstructing payload manually.
-    payload_dict = json.loads(payload)
-    payload_dict["model"] = args.model
-    payload_dict["max_tokens"] = args.max_tokens
-
-    response = call_claude(json.dumps(payload_dict), api_key)
+    system_prompt, user_message = build_messages(
+        args.user_prompt,
+        blueprint_template,
+        agent_template,
+    )
+    response = call_claude_with_langchain(
+        system_prompt,
+        user_message,
+        api_key=api_key,
+        model=args.model,
+        max_tokens=args.max_tokens,
+    )
     print(response)
+    if args.test_output:
+        output_path = pathlib.Path(args.test_output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(response, encoding="utf-8")
 
 
 if __name__ == "__main__":

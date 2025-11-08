@@ -7,9 +7,8 @@ can implement it with full clarity.
 ### MCP Blueprint Request
 - **MCP Name:** `<short identifier>`
 - **Business Goal:** `<what success looks like>`
-- **Authority / Access Level:** `<permissions, data boundaries>`
 
-#### Functionalities
+#### MCP Design Parameters
 1. **Core Responsibility:** `<describe outcome or transformation>`
    - Inputs: `<list expected inputs + formats>`
    - Operations: `<detail tools/functions the MCP must expose>`
