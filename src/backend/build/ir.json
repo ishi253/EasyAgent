@@ -1,0 +1,109 @@
+{
+  "server_name": "gcd-calculator",
+  "description": "MCP server for calculating the greatest common divisor (GCD) of two numbers",
+  "tools": [
+    {
+      "name": "find_gcd",
+      "description": "Calculate the greatest common divisor (GCD) of two integers using Euclidean algorithm",
+      "parameters": [
+        {
+          "name": "a",
+          "type": "int",
+          "description": "First integer number",
+          "default": null
+        },
+        {
+          "name": "b",
+          "type": "int",
+          "description": "Second integer number",
+          "default": null
+        }
+      ],
+      "return_type": "int",
+      "implementation": "    # Handle negative numbers by taking absolute values\n    a = abs(a)\n    b = abs(b)\n    \n    # Euclidean algorithm\n    while b != 0:\n        temp = b\n        b = a % b\n        a = temp\n    \n    return a",
+      "is_async": false
+    },
+    {
+      "name": "find_gcd_multiple",
+      "description": "Calculate the GCD of multiple integers",
+      "parameters": [
+        {
+          "name": "numbers",
+          "type": "list[int]",
+          "description": "List of integers to find the GCD of",
+          "default": null
+        }
+      ],
+      "return_type": "int",
+      "implementation": "    if not numbers:\n        raise ValueError(\"List cannot be empty\")\n    \n    if len(numbers) == 1:\n        return abs(numbers[0])\n    \n    # Helper function for two numbers\n    def gcd_two(a: int, b: int) -> int:\n        a = abs(a)\n        b = abs(b)\n        while b != 0:\n            temp = b\n            b = a % b\n            a = temp\n        return a\n    \n    # Calculate GCD iteratively for all numbers\n    result = numbers[0]\n    for i in range(1, len(numbers)):\n        result = gcd_two(result, numbers[i])\n        if result == 1:\n            break  # Early exit if GCD becomes 1\n    \n    return result",
+      "is_async": false
+    }
+  ],
+  "dependencies": [],
+  "environment": {
+    "workdir_required": false,
+    "network_access": false
+  },
+  "tests": [
+    {
+      "tool": "find_gcd",
+      "args": {
+        "a": 48,
+        "b": 18
+      },
+      "expected_result": 6,
+      "assertion": "equals"
+    },
+    {
+      "tool": "find_gcd",
+      "args": {
+        "a": 100,
+        "b": 35
+      },
+      "expected_result": 5,
+      "assertion": "equals"
+    },
+    {
+      "tool": "find_gcd",
+      "args": {
+        "a": -24,
+        "b": 36
+      },
+      "expected_result": 12,
+      "assertion": "equals"
+    },
+    {
+      "tool": "find_gcd",
+      "args": {
+        "a": 17,
+        "b": 19
+      },
+      "expected_result": 1,
+      "assertion": "equals"
+    },
+    {
+      "tool": "find_gcd_multiple",
+      "args": {
+        "numbers": [
+          48,
+          64,
+          16
+        ]
+      },
+      "expected_result": 16,
+      "assertion": "equals"
+    },
+    {
+      "tool": "find_gcd_multiple",
+      "args": {
+        "numbers": [
+          100,
+          75,
+          50
+        ]
+      },
+      "expected_result": 25,
+      "assertion": "equals"
+    }
+  ]
+}
