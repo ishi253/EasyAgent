@@ -6,7 +6,9 @@ from __future__ import annotations
 import argparse
 import os
 import pathlib
+import re
 import sys
+import json
 
 try:
     from langchain_anthropic import ChatAnthropic
@@ -108,6 +110,25 @@ def call_claude_with_langchain(
     return str(content)
 
 
+def clean_claude_output(raw_output: str) -> str:
+    """
+    Remove common Claude artifacts (code fences, language hints) and trim whitespace.
+
+    Claude often wraps structured responses in triple backticks with an optional
+    language tag like ```json. This helper unwraps the first full fence block if
+    present, normalizes line endings, and strips leading/trailing whitespace so
+    downstream parsers see only the JSON/text payload.
+    """
+    if not raw_output:
+        return raw_output
+
+    cleaned = raw_output.strip().replace("\r\n", "\n")
+    fence_match = re.fullmatch(r"```(?:\w+)?\s*(.*?)\s*```", cleaned, re.DOTALL)
+    if fence_match:
+        cleaned = fence_match.group(1).strip()
+    return cleaned
+
+
 def find_env_file(start_dir: pathlib.Path) -> pathlib.Path | None:
     """Search upwards from start_dir for a .env file."""
     for path in [start_dir, *start_dir.parents]:
@@ -158,12 +179,10 @@ def execute(user_prompt:str, model=MODEL, max_tokens=1500) -> str:
         )
 
     blueprint_template = read_template(script_dir / "PromptFormat_MCPBlueprint.md")
-    agent_template = read_template(script_dir / "PromptFormat_AgentRun.md")
 
     system_prompt, user_message = build_messages(
         user_prompt,
         blueprint_template,
-        agent_template,
     )
     response = call_claude_with_langchain(
         system_prompt,
@@ -171,8 +190,15 @@ def execute(user_prompt:str, model=MODEL, max_tokens=1500) -> str:
         api_key=api_key,
         model=model,
         max_tokens=max_tokens
-
     )
         
-    logger.info(f"response: {response}")
-    return response
+    cleaned_response = clean_claude_output(response)
+    logger.info(f"response: {cleaned_response}")
+    return cleaned_response
+
+if __name__ == "__main__":
+    out = execute("Create a agent that will open vscode, read my homework from a pdf, and implement it.")
+    print(out)
+    outns = json.loads(out)
+    print(outns)
+    print(type(outns))

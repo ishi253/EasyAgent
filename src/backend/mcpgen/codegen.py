@@ -66,6 +66,23 @@ _toolset = GeneratedToolset()
 
 {% endfor %}
 
+class GeneratedToolset:
+    """Expose generated MCP tools as bound methods that can be iterated over."""
+    _tool_names = {{ tool_names }}
+
+    def __iter__(self):
+        for tool_name in self._tool_names:
+            yield getattr(self, tool_name)
+
+{% for t in tools %}
+{% if t.is_async %}    async def {{ t.name }}({{ t.method_params_str }}) -> {{ t.return_type }}:
+        return await {{ t.name }}({{ t.call_args_str }})
+{% else %}    def {{ t.name }}({{ t.method_params_str }}) -> {{ t.return_type }}:
+        return {{ t.name }}({{ t.call_args_str }})
+{% endif %}
+
+{% endfor %}
+
 if __name__ == "__main__":
     # stdio transport for agent runtimes
     mcp.run()
@@ -165,6 +182,10 @@ def generate(ir: IR, out_dir: Path) -> None:
         call_args = ", ".join(call_args_parts)
         call_expr = f"_toolset.{tool.name}({call_args})" if call_args else f"_toolset.{tool.name}()"
 
+        call_args_str = ", ".join(p.name for p, _ in ordered_params)
+        method_params_parts = ["self"]
+        method_params_parts.extend(params_parts)
+
         tools_ctx.append({
             "name": tool.name,
             "description": tool.description,
@@ -174,6 +195,8 @@ def generate(ir: IR, out_dir: Path) -> None:
             "body_indented_method": body_indented_method,
             "call_expr": call_expr,
             "is_async": getattr(tool, "is_async", False),
+            "method_params_str": ", ".join(method_params_parts),
+            "call_args_str": call_args_str,
         })
 
     env = JinjaEnv(loader=BaseLoader(), autoescape=False, trim_blocks=True, lstrip_blocks=True)
@@ -185,6 +208,7 @@ def generate(ir: IR, out_dir: Path) -> None:
         tool_names=tool_names,
         imports=imports,
         environment=ir.environment,
+        tool_names=tuple(tool.name for tool in ir.tools),
     )
     reqs_txt = env.from_string(REQUIREMENTS_TEMPLATE).render(dependencies=ir.dependencies)
 

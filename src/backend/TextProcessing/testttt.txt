@@ -2,22 +2,22 @@
 {
   "responsibilities": [
     {
-      "name": "Research and gather information from various sources",
-      "inputs": "Search queries (text strings), topics of interest (text), specific questions (text), URLs for deeper investigation (optional)",
-      "operations": "search_web(query: string), extract_content(url: string), summarize_findings(content: string), verify_facts(claims: string[])",
-      "outputs": "Structured research results (JSON), summaries (text), source citations (array of URLs and titles), fact-check reports (JSON)"
+      "name": "Research and retrieve information from various sources",
+      "inputs": "search queries (text), topic specifications (text), research questions (text), source preferences (optional: academic, web, news)",
+      "operations": "web_search(query, num_results, source_type), extract_content(url), summarize_information(content, max_length), verify_facts(claims), get_citations(content)",
+      "outputs": "structured research data (JSON), summaries (text), source citations (formatted references), fact-check results (boolean + confidence scores)"
     },
     {
       "name": "Create and manage Google Docs content",
-      "inputs": "Document title (text), document ID (string, optional for existing docs), content to write (formatted text/markdown), section headers (array of strings)",
-      "operations": "create_document(title: string), open_document(doc_id: string), write_content(doc_id: string, content: string, position: optional), format_text(doc_id: string, formatting_rules: object), add_section(doc_id: string, header: string, content: string)",
-      "outputs": "Document ID (string), document URL (string), write confirmation (boolean), formatted document (Google Doc)"
+      "inputs": "document title (text), document ID (string, optional for existing docs), content to write (text/markdown), formatting preferences (JSON)",
+      "operations": "create_document(title, folder_id), open_document(doc_id), write_content(doc_id, content, position), format_text(doc_id, range, formatting_options), add_heading(doc_id, text, level), add_list(doc_id, items, list_type)",
+      "outputs": "document URL (string), document ID (string), operation status (success/failure + details)"
     },
     {
-      "name": "Organize and structure information into document format",
-      "inputs": "Raw research data (JSON/text), document outline requirements (text), formatting preferences (style guide specifications)",
-      "operations": "create_outline(topics: array), organize_by_relevance(content: array), generate_citations(sources: array), create_table_of_contents(sections: array)",
-      "outputs": "Structured document outline (JSON), organized content blocks (array), formatted citations (text), table of contents (formatted text)"
+      "name": "Organize and structure information in documents",
+      "inputs": "research data (JSON/text), document structure preferences (outline format), section specifications (headings, subheadings)",
+      "operations": "create_outline(topics, depth), organize_sections(content, structure), insert_table_of_contents(doc_id), add_references_section(doc_id, citations), insert_images(doc_id, image_urls, captions)",
+      "outputs": "formatted document (Google Doc), document structure map (JSON), completion status (boolean + statistics)"
     }
   ]
 }

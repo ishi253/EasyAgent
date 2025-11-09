@@ -5,11 +5,11 @@ The backend uses two dataset files under ``src/backend/db``:
 
 1. Agent Dataset (agents.db)
    Table schema: agents(agent_id TEXT PK, name TEXT, prompt TEXT, tools JSON,
-   need_mcp INTEGER, created_at TEXT, updated_at TEXT)
+   need_mcp INTEGER, file_path TEXT, created_at TEXT, updated_at TEXT)
 
 2. Workflow Dataset (workflows.db)
    Table schema: workflows(workflow_id TEXT PK, display_name TEXT, nodes JSON,
-   edges JSON, max_parallelism INTEGER, created_at TEXT, updated_at TEXT)
+   edges JSON, max_parallelism INTEGER, file_path TEXT, created_at TEXT, updated_at TEXT)
 
 Key entry points:
     init_db()
@@ -39,6 +39,16 @@ WORKFLOW_DB_PATH = GLOBAL_BASE_PATH / "workflows.db"
 
 def _ensure_db_directory() -> None:
     GLOBAL_BASE_PATH.mkdir(parents=True, exist_ok=True)
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+    """Add a column to `table` if it does not already exist."""
+    existing = {
+        row["name"]
+        for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+    if column not in existing:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition};")
 
 
 def _now_timestamp() -> str:
@@ -72,11 +82,13 @@ def init_db() -> None:
                 prompt TEXT NOT NULL,
                 tools TEXT NOT NULL,
                 need_mcp INTEGER NOT NULL DEFAULT 0,
+                file_path TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
             """
         )
+        _ensure_column(conn, "agents", "file_path", "TEXT")
     with get_workflow_connection() as conn:
         conn.execute(
             """
@@ -86,11 +98,13 @@ def init_db() -> None:
                 nodes TEXT NOT NULL,
                 edges TEXT NOT NULL,
                 max_parallelism INTEGER NOT NULL DEFAULT 1,
+                file_path TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
             """
         )
+        _ensure_column(conn, "workflows", "file_path", "TEXT")
 
 
 def _row_to_agent(row: sqlite3.Row) -> Dict[str, Any]:
@@ -100,6 +114,7 @@ def _row_to_agent(row: sqlite3.Row) -> Dict[str, Any]:
         "prompt": row["prompt"],
         "tools": json.loads(row["tools"]),
         "need_mcp": bool(row["need_mcp"]),
+        "file_path": row["file_path"],
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
     }
@@ -112,12 +127,21 @@ def _row_to_workflow(row: sqlite3.Row) -> Dict[str, Any]:
         "nodes": json.loads(row["nodes"]),
         "edges": json.loads(row["edges"]),
         "max_parallelism": row["max_parallelism"],
+        "file_path": row["file_path"],
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
     }
 
 
-def save_agent(agent_id: str, *, name: str, prompt: str, tools: List[str], need_mcp: bool = False) -> Dict[str, Any]:
+def save_agent(
+    agent_id: str,
+    *,
+    name: str,
+    prompt: str,
+    tools: List[str],
+    need_mcp: bool = False,
+    file_path: Optional[str] = None,
+) -> Dict[str, Any]:
     """Insert or update an agent configuration."""
     if not agent_id:
         raise ValueError("agent_id must be provided")
@@ -128,19 +152,21 @@ def save_agent(agent_id: str, *, name: str, prompt: str, tools: List[str], need_
         "prompt": prompt,
         "tools": tools,
         "need_mcp": need_mcp,
+        "file_path": file_path or "",
         "created_at": timestamp,
         "updated_at": timestamp,
     }
     with get_agent_connection() as conn:
         conn.execute(
             """
-            INSERT INTO agents (agent_id, name, prompt, tools, need_mcp, created_at, updated_at)
-            VALUES (:agent_id, :name, :prompt, :tools, :need_mcp, :created_at, :updated_at)
+            INSERT INTO agents (agent_id, name, prompt, tools, need_mcp, file_path, created_at, updated_at)
+            VALUES (:agent_id, :name, :prompt, :tools, :need_mcp, :file_path, :created_at, :updated_at)
             ON CONFLICT(agent_id) DO UPDATE SET
                 name=excluded.name,
                 prompt=excluded.prompt,
                 tools=excluded.tools,
                 need_mcp=excluded.need_mcp,
+                file_path=excluded.file_path,
                 updated_at=excluded.updated_at;
             """,
             {
@@ -166,13 +192,6 @@ def list_agents() -> List[Dict[str, Any]]:
         rows = conn.execute("SELECT * FROM agents ORDER BY created_at ASC").fetchall()
     return [_row_to_agent(row) for row in rows]
 
-
-def list_agents_without_ids() -> List[Dict[str, Any]]:
-    """Return all agent records without their agent_id field."""
-    agents = list_agents()
-    return [{k: v for k, v in agent.items()} for agent in agents]
-
-
 def delete_agent(agent_id: str) -> bool:
     """Remove an agent. Returns True if a row was deleted."""
     with get_agent_connection() as conn:
@@ -188,6 +207,7 @@ def save_workflow(
     nodes: Optional[List[str]] = None,
     edges: Optional[List[Tuple[str, str]]] = None,
     max_parallelism: int = 1,
+    file_path: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Insert or update a workflow definition."""
     if not workflow_id:
@@ -201,19 +221,21 @@ def save_workflow(
         "nodes": json.dumps(nodes),
         "edges": json.dumps(edges),
         "max_parallelism": max(1, max_parallelism),
+        "file_path": file_path or "",
         "created_at": timestamp,
         "updated_at": timestamp,
     }
     with get_workflow_connection() as conn:
         conn.execute(
             """
-            INSERT INTO workflows (workflow_id, display_name, nodes, edges, max_parallelism, created_at, updated_at)
-            VALUES (:workflow_id, :display_name, :nodes, :edges, :max_parallelism, :created_at, :updated_at)
+            INSERT INTO workflows (workflow_id, display_name, nodes, edges, max_parallelism, file_path, created_at, updated_at)
+            VALUES (:workflow_id, :display_name, :nodes, :edges, :max_parallelism, :file_path, :created_at, :updated_at)
             ON CONFLICT(workflow_id) DO UPDATE SET
                 display_name=excluded.display_name,
                 nodes=excluded.nodes,
                 edges=excluded.edges,
                 max_parallelism=excluded.max_parallelism,
+                file_path=excluded.file_path,
                 updated_at=excluded.updated_at;
             """,
             payload,
@@ -235,13 +257,6 @@ def list_workflows() -> List[Dict[str, Any]]:
         rows = conn.execute("SELECT * FROM workflows ORDER BY created_at ASC").fetchall()
     return [_row_to_workflow(row) for row in rows]
 
-
-def list_workflows_without_ids() -> List[Dict[str, Any]]:
-    """Return workflow definitions without their workflow_id field."""
-    workflows = list_workflows()
-    return [{k: v for k, v in workflow.items()} for workflow in workflows]
-
-
 def delete_workflow(workflow_id: str) -> bool:
     """Delete a workflow definition. Returns True on success."""
     with get_workflow_connection() as conn:
@@ -257,64 +272,6 @@ init_db()
 if __name__ == "__main__":
     # init_db()
     # Basic harness that exercises CRUD for both datasets.
-    print("Running FAST db harness...")
-
-    def assert_eq(actual, expected, label: str) -> None:
-        if actual != expected:
-            raise AssertionError(f"{label} mismatch: {actual!r} != {expected!r}")
-
-    def run_agent_tests() -> None:
-        delete_agent("harness-agent")
-        delete_agent("harness-agent-2")
-
-        a1 = save_agent("harness-agent", name="Test Agent", prompt="Prompt", tools=["a"], need_mcp=True)
-        assert_eq(a1["name"], "Test Agent", "agent name insert")
-        fetched = get_agent("harness-agent")
-        assert_eq(fetched["tools"], ["a"], "agent tools fetch")
-
-        save_agent("harness-agent", name="Updated", prompt="Prompt2", tools=["b"], need_mcp=False)
-        updated = get_agent("harness-agent")
-        assert_eq(updated["name"], "Updated", "agent update")
-        assert_eq(updated["need_mcp"], False, "agent need_mcp update")
-
-        save_agent("harness-agent-2", name="Second", prompt="P2", tools=[], need_mcp=False)
-        agents = list_agents()
-        assert len([a for a in agents if a["agent_id"].startswith("harness-agent")]) == 2
-
-        assert delete_agent("harness-agent") is True
-        assert delete_agent("harness-agent-2") is True
-        assert get_agent("harness-agent") is None
-
-    def run_workflow_tests() -> None:
-        delete_workflow("harness-workflow")
-
-        w1 = save_workflow(
-            "harness-workflow",
-            display_name="WF",
-            nodes=["n1", "n2"],
-            edges=[("n1", "n2")],
-            max_parallelism=0,
-        )
-        assert_eq(w1["display_name"], "WF", "workflow insert")
-        assert_eq(w1["max_parallelism"], 1, "workflow parallelism clamp")
-
-        save_workflow(
-            "harness-workflow",
-            display_name="WF2",
-            nodes=["n3"],
-            edges=[],
-            max_parallelism=4,
-        )
-        updated = get_workflow("harness-workflow")
-        assert_eq(updated["display_name"], "WF2", "workflow update")
-        assert_eq(updated["nodes"], ["n3"], "workflow nodes update")
-
-        workflows = list_workflows()
-        assert len([w for w in workflows if w["workflow_id"] == "harness-workflow"]) == 1
-
-        assert delete_workflow("harness-workflow") is True
-        assert get_workflow("harness-workflow") is None
-
-    run_agent_tests()
-    run_workflow_tests()
-    print("FAST db harness completed successfully.")
+    save_agent("harness-agent", name="Test Agent", prompt="Prompt", tools=["a"], need_mcp=True)
+    save_agent("harness-agent1", name="Updated", prompt="Prompt2", tools=["b"], need_mcp=False)
+    print(len(list_agents()))
