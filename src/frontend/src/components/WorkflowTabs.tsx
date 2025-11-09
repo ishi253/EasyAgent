@@ -1,33 +1,25 @@
 import { useState } from 'react';
-import { Workflow } from '../App';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from './ui/dropdown-menu';
-import {
+  Box,
+  Button,
   Dialog,
+  DialogActions,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
-} from './ui/dialog';
-import { Label } from './ui/label';
-import { Plus, MoreHorizontal, Edit, Trash2, Copy } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from './ui/alert-dialog';
+  IconButton,
+  Menu,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+  Paper,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import EditIcon from '@mui/icons-material/Edit';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import { Workflow } from '../App';
 
 interface WorkflowTabsProps {
   workflows: Workflow[];
@@ -54,6 +46,8 @@ export function WorkflowTabs({
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [newWorkflowContext, setNewWorkflowContext] = useState(''); // new
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [menuWorkflowId, setMenuWorkflowId] = useState<string | null>(null);
 
   const handleCreateWorkflow = () => {
     if (newWorkflowName.trim()) {
@@ -95,172 +89,170 @@ export function WorkflowTabs({
     setIsDeleteDialogOpen(true);
   };
 
-  return (
-    <>
-      <div className="flex items-center gap-2 overflow-x-auto">
-        {workflows.map((workflow) => (
-          <div
-            key={workflow.id}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-              workflow.id === currentWorkflowId
-                ? 'bg-blue-100 border-2 border-blue-500'
-                : 'bg-slate-100 border-2 border-transparent hover:border-slate-300'
-            }`}
-          >
-            <button
-              onClick={() => onSelectWorkflow(workflow.id)}
-              className="flex-1 text-left"
-              title={workflow.context ? `Context: ${workflow.context}` : undefined}
-            >
-              <span className={workflow.id === currentWorkflowId ? 'font-medium text-blue-700' : 'text-slate-700'}>
-                {workflow.name}
-              </span>
-              {workflow.context ? (
-                <div className="text-xs text-slate-500 truncate max-w-[180px]">
-                  {workflow.context}
-                </div>
-              ) : null}
-            </button>
+  const openMenuFor = (workflowId: string, anchor: HTMLElement) => {
+    setMenuAnchor(anchor);
+    setMenuWorkflowId(workflowId);
+  };
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="h-6 w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-slate-200 transition-colors">
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openRenameDialog(workflow.id)}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Rename
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDuplicateWorkflow(workflow.id)}>
-                  <Copy className="w-4 h-4 mr-2" />
-                  Duplicate
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => openDeleteDialog(workflow.id)}
-                  disabled={workflows.length === 1}
-                  className="text-red-600"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+  const closeMenu = () => {
+    setMenuAnchor(null);
+    setMenuWorkflowId(null);
+  };
+
+  return (
+    <Box>
+      <Stack direction="row" spacing={1.5} alignItems="center" overflow="auto" py={1}>
+        {workflows.map((workflow) => (
+          <Paper
+            key={workflow.id}
+            variant="outlined"
+            onClick={() => onSelectWorkflow(workflow.id)}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 2,
+              py: 1,
+              borderWidth: 2,
+              borderColor: workflow.id === currentWorkflowId ? 'primary.main' : 'transparent',
+              backgroundColor: workflow.id === currentWorkflowId ? 'rgba(37,99,235,0.08)' : 'rgba(148,163,184,0.15)',
+              cursor: 'pointer',
+              minWidth: 200,
+            }}
+          >
+            <Box flex={1} minWidth={0}>
+              <Typography
+                fontWeight={600}
+                color={workflow.id === currentWorkflowId ? 'primary.main' : 'text.primary'}
+                noWrap
+              >
+                {workflow.name}
+              </Typography>
+              {workflow.context && (
+                <Typography variant="caption" color="text.secondary" noWrap>
+                  {workflow.context}
+                </Typography>
+              )}
+            </Box>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                openMenuFor(workflow.id, e.currentTarget);
+              }}
+            >
+              <MoreHorizIcon fontSize="small" />
+            </IconButton>
+          </Paper>
         ))}
 
         <Button
-          variant="outline"
-          size="sm"
+          size="small"
+          variant="outlined"
+          startIcon={<AddIcon fontSize="small" />}
           onClick={() => setIsCreateDialogOpen(true)}
-          className="gap-1 flex-shrink-0"
+          sx={{ flexShrink: 0 }}
         >
-          <Plus className="w-4 h-4" />
           New Workflow
         </Button>
-      </div>
+      </Stack>
 
-      {/* Create Workflow Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
+        <MenuItem
+          onClick={() => {
+            closeMenu();
+            if (menuWorkflowId) openRenameDialog(menuWorkflowId);
+          }}
+        >
+          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Rename
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (menuWorkflowId) onDuplicateWorkflow(menuWorkflowId);
+            closeMenu();
+          }}
+        >
+          <ContentCopyIcon fontSize="small" sx={{ mr: 1 }} /> Duplicate
+        </MenuItem>
+        <MenuItem
+          disabled={workflows.length === 1}
+          onClick={() => {
+            closeMenu();
+            if (menuWorkflowId) openDeleteDialog(menuWorkflowId);
+          }}
+          sx={{ color: 'error.main' }}
+        >
+          <DeleteOutlineIcon fontSize="small" sx={{ mr: 1 }} /> Delete
+        </MenuItem>
+      </Menu>
+
+      <Dialog open={isCreateDialogOpen} onClose={() => setIsCreateDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Create New Workflow</DialogTitle>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Workflow</DialogTitle>
-            <DialogDescription>
-              Give your workflow a descriptive name and optional context.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="workflow-name">Workflow Name</Label>
-              <Input
-                id="workflow-name"
-                placeholder="e.g., Content Pipeline, Data Analysis Flow"
-                value={newWorkflowName}
-                onChange={(e) => setNewWorkflowName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreateWorkflow();
-                }}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="workflow-context">Context / Situation</Label>
-              <Input
-                id="workflow-context"
-                placeholder="e.g., Q4 marketing campaign, data cleanup, onboarding"
-                value={newWorkflowContext}
-                onChange={(e) => setNewWorkflowContext(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreateWorkflow();
-                }}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateWorkflow} disabled={!newWorkflowName.trim()}>
-              Create
-            </Button>
-          </DialogFooter>
+          <Stack spacing={2} mt={1}>
+            <TextField
+              label="Workflow Name"
+              placeholder="e.g., Content Pipeline"
+              value={newWorkflowName}
+              onChange={(e) => setNewWorkflowName(e.target.value)}
+              autoFocus
+            />
+            <TextField
+              label="Context / Situation"
+              placeholder="e.g., Q4 marketing campaign"
+              value={newWorkflowContext}
+              onChange={(e) => setNewWorkflowContext(e.target.value)}
+            />
+          </Stack>
         </DialogContent>
+        <DialogActions>
+          <Button color="inherit" onClick={() => setIsCreateDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleCreateWorkflow} disabled={!newWorkflowName.trim()} variant="contained">
+            Create
+          </Button>
+        </DialogActions>
       </Dialog>
 
-      {/* Rename Workflow Dialog */}
-      <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+      <Dialog open={isRenameDialogOpen} onClose={() => setIsRenameDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Rename Workflow</DialogTitle>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Rename Workflow</DialogTitle>
-            <DialogDescription>
-              Enter a new name for your workflow
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="rename-workflow">Workflow Name</Label>
-              <Input
-                id="rename-workflow"
-                value={newWorkflowName}
-                onChange={(e) => setNewWorkflowName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleRenameWorkflow();
-                }}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
-              Cancel
-            </Button>
-              <Button onClick={handleRenameWorkflow} disabled={!newWorkflowName.trim()}>
-              Rename
-            </Button>
-          </DialogFooter>
+          <TextField
+            label="Workflow Name"
+            value={newWorkflowName}
+            onChange={(e) => setNewWorkflowName(e.target.value)}
+            fullWidth
+            autoFocus
+            sx={{ mt: 1 }}
+          />
         </DialogContent>
+        <DialogActions>
+          <Button color="inherit" onClick={() => setIsRenameDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleRenameWorkflow} disabled={!newWorkflowName.trim()} variant="contained">
+            Rename
+          </Button>
+        </DialogActions>
       </Dialog>
 
-      {/* Delete Workflow Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Workflow?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the workflow and all its agents and connections. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteWorkflow}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+      <Dialog open={isDeleteDialogOpen} onClose={() => setIsDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete Workflow?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            This will permanently delete the workflow and all of its connections.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button color="inherit" onClick={() => setIsDeleteDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button color="error" variant="contained" onClick={handleDeleteWorkflow}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }

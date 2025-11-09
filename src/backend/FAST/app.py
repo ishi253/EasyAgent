@@ -158,10 +158,11 @@ async def create_agent(agent: AgentCreateRequest):
         raise HTTPException(status_code=500, detail=f"LLM returned invalid JSON: {exc}") from exc
 
     try:
+        data = prompt_payload['responsibilities']
         created_agent = createAgent(
-            prompt=prompt_payload['responsibilities'],
+            prompt=data[''],
             tools=[],
-            name=cleaned_name,
+            name=prompt_payload,
             needMCP=False,
             tool_req=[],
         )

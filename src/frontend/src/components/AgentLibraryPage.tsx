@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
+import { Box, Button, Collapse, Grid, Paper, Stack, Typography } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import { Agent } from '../App';
-import { Button } from './ui/button';
-import { Plus } from 'lucide-react';
 import { CreateAgentDialog } from './CreateAgentDialog';
 import { AgentDetailPanel } from './AgentDetailPanel';
 
@@ -16,70 +16,91 @@ export function AgentLibraryPage({ agents, onCreateAgent }: AgentLibraryPageProp
 
   const sortedAgents = useMemo(
     () =>
-      [...agents].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      ),
+      [...agents].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [agents]
   );
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Top bar */}
-      <div className="px-6 pt-6 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-center flex">Agent Library</h2>
-        <Button onClick={() => setOpen(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
+    <Box display="flex" flexDirection="column" height="100%" px={4} py={4} gap={3} overflow="hidden">
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Typography variant="h5" fontWeight={600}>
+          Agent Library
+        </Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
           New Agent
         </Button>
-      </div>
+      </Stack>
 
-      {/* Scrollable content area */}
-      <div className="flex-1 px-6 pb-6 mt-4 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+      <Box flex={1} overflow="auto" pr={1}>
         {sortedAgents.length === 0 ? (
-          <div className="border border-dashed border-slate-300 rounded-xl p-10 text-slate-600 text-center">
-            <p className="font-medium mb-1">No agents yet</p>
-            <p>
-              Click <span className="font-semibold">New Agent</span> to create one.
-            </p>
-          </div>
+          <Paper
+            variant="outlined"
+            sx={{
+              borderStyle: 'dashed',
+              textAlign: 'center',
+              p: 6,
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              No agents yet
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Click “New Agent” to create your first assistant.
+            </Typography>
+          </Paper>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
-            {sortedAgents.map((a) => {
-              const active = a.id === selectedAgentId;
+          <Grid container spacing={3}>
+            {sortedAgents.map((agent) => {
+              const active = agent.id === selectedAgentId;
               return (
-                <div key={a.id} className="space-y-2">
-                  <button
-                    onClick={() => setSelectedAgentId(active ? null : a.id)}
-                    className={`w-full border rounded-xl p-4 bg-white transition-all hover:shadow-sm focus:outline-none
-                      ${active ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'}`}
-                    aria-pressed={active}
-                  >
-                    <div className="flex flex-col items-center mb-2">
-                      <div className="font-medium text-slate-900">{a.name}</div>
-                      <div className="text-xs text-slate-500">{a.category}</div>
-
-                    </div>
-
-                    {/* Centered description */}
-                    <p className="text-sm text-slate-700 mt-2 line-clamp-3 text-center">
-                      {a.description}
-                    </p>
-                  </button>
-
-                  {/* Inline detail panel below the card */}
-                  {active && (
-                    <div className="border border-blue-200 rounded-lg bg-white p-4 shadow-sm text-center">
-                      <AgentDetailPanel agent={a} onClose={() => setSelectedAgentId(null)} />
-                    </div>
-                  )}
-                </div>
+                <Grid item xs={12} sm={6} lg={4} key={agent.id}>
+                  <Stack spacing={1.5}>
+                    <Paper
+                      variant="outlined"
+                      onClick={() => setSelectedAgentId(active ? null : agent.id)}
+                      sx={{
+                        p: 2.5,
+                        textAlign: 'center',
+                        borderWidth: 2,
+                        borderColor: active ? 'primary.main' : 'divider',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        boxShadow: active ? 4 : 1,
+                      }}
+                    >
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        {agent.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {agent.category}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          mt: 1,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {agent.description}
+                      </Typography>
+                    </Paper>
+                    <Collapse in={active} unmountOnExit>
+                      <Paper variant="outlined" sx={{ p: 2 }}>
+                        <AgentDetailPanel agent={agent} onClose={() => setSelectedAgentId(null)} />
+                      </Paper>
+                    </Collapse>
+                  </Stack>
+                </Grid>
               );
             })}
-          </div>
+          </Grid>
         )}
-      </div>
+      </Box>
 
-      {/* Create Dialog */}
       <CreateAgentDialog
         open={open}
         onOpenChange={setOpen}
@@ -88,6 +109,6 @@ export function AgentLibraryPage({ agents, onCreateAgent }: AgentLibraryPageProp
           setOpen(false);
         }}
       />
-    </div>
+    </Box>
   );
 }
