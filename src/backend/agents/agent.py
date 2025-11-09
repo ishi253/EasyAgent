@@ -10,8 +10,8 @@ from typing import Awaitable, Callable, List, TypeVar
 from dedalus_labs import AsyncDedalus, DedalusRunner
 from dotenv import load_dotenv
 
-from backend.mcpgen.codegen import generate
-from backend.mcpgen.planner import plan as _plan
+from src.backend.mcpgen.codegen import generate
+from src.backend.mcpgen.planner import plan as _plan
 
 T = TypeVar("T")
 
