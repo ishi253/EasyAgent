@@ -5,16 +5,17 @@ from dataclasses import dataclass
 from typing import List
 from dedalus_labs import AsyncDedalus, DedalusRunner
 from dotenv import load_dotenv
+import uuid
 # from dedalus_labs.utils.stream import stream_async
 
+##get agent from database using the agent ID
 async def run_agent(agent: Agent):
     load_dotenv()
 
-    if agent.needMCP:
-        agent.tools.extend(createMCP(tool_request)) # type: ignore
-
     client = AsyncDedalus()
     runner = DedalusRunner(client)
+
+    
 
     result = await runner.run(  # type: ignore
         input=agent.prompt,
@@ -29,10 +30,18 @@ async def run_agent(agent: Agent):
 def createMCP(spec: str):
     return [str]
 
+def createAgent(prompt:str, tools: List[str], name:str, needMCP: bool, tool_req: List[str]):
+    if needMCP:
+        for req in tool_req:
+            tools.append(createMCP(req))
+    
+    id = str(uuid.uuid1()[:6])
+    return Agent(prompt, tools, name, id)
+
 @dataclass
 class Agent:
     prompt: str
     tools: List[str]
     name: str
-    needMCP: bool
-    tool_request: str
+    id: str
+
