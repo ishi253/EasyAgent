@@ -3,6 +3,7 @@ from typing import List, Tuple
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from backend.agents.agent import createAgent
 
 app = FastAPI()
 
@@ -20,6 +21,12 @@ class WorkflowStruct(BaseModel):
     workflow: str
     nodes: List[str] # AgentID-count
     edges: List[Tuple[str, str]]
+
+class AgentCreateRequest(BaseModel):
+    name: str
+    description: str
+    prompt: str
+    category: str
 
 
 @app.post("/")
@@ -43,3 +50,35 @@ async def root(workflow: WorkflowStruct):
 
 # Create Agent
 # Prompt, list of avaiable tools, name of agent, bool do we need more MCP, tool requirements, SOP
+
+@app.post("/agents")
+async def create_agent(agent: AgentCreateRequest):
+    cleaned_name = agent.name.strip()
+    cleaned_prompt = agent.prompt.strip()
+    cleaned_description = agent.description.strip()
+    cleaned_category = agent.category.strip()
+    if not cleaned_name:
+        raise HTTPException(status_code=400, detail="Agent name cannot be empty.")
+    if not cleaned_prompt:
+        raise HTTPException(status_code=400, detail="Agent prompt cannot be empty.")
+    try:
+        created_agent = createAgent(
+            prompt=cleaned_prompt,
+            tools=[],
+            name=cleaned_name,
+            needMCP=False,
+            tool_req=[],
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Unable to instantiate agent: {exc}") from exc
+    return {
+        "message": "Agent registered successfully.",
+        "agent": {
+            "id": created_agent.id,
+            "name": created_agent.name,
+            "prompt": created_agent.prompt,
+            "tools": created_agent.tools,
+            "description": cleaned_description,
+            "category": cleaned_category,
+        },
+    }

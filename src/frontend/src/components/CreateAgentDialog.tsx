@@ -12,6 +12,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
+const baseEnv = "http://127.0.0.1:8000"
 
 interface CreateAgentDialogProps {
   open: boolean;
@@ -34,18 +35,35 @@ export function CreateAgentDialog({ open, onOpenChange, onCreateAgent }: CreateA
     }
   }, [open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
  
     const newAgentObject = { //FETCH DATA TO BACKEND API
-    name: formData.name.trim(),
-    description: formData.description.trim(),
-    prompt: formData.prompt.trim(),
-    category: formData.category.trim(),
-  };
+      name: formData.name.trim(),
+      description: formData.description.trim(),
+      prompt: formData.prompt.trim(),
+      category: formData.category.trim(),
+    };
 
-  console.log('Compiled agent data:', newAgentObject);
+    console.log('Compiled agent data:', newAgentObject);
+    if (!newAgentObject) return;
+    try {
+      const response = await fetch(`${baseEnv}/agent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newAgentObject),
+      });
 
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Backend error ${response.status}: ${errorBody}`);
+      }
+
+      const data = await response.json();
+      console.log("Backend response:", data);
+    } catch (error) {
+      console.error("Failed to send workflow to backend:", error);
+    }
     onCreateAgent(newAgentObject);
     setFormData({ name: '', description: '', prompt: '', category: '' });
     onOpenChange(false); // close
