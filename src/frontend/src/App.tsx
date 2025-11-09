@@ -64,20 +64,20 @@ export default function App() {
       updatedAt: new Date().toISOString(),
     },
     {
-      id: '2',
-      name: 'Content Writer',
-      description: 'Creates engaging content from research',
-      prompt: 'You are an expert content writer. Take research insights and create engaging, well-structured content that is clear and compelling.',
-      category: 'Writing',
+      id: '5',
+      name: 'Data Analyst Agent',
+      description: 'Analyzes datasets to find trends and insights.',
+      prompt: 'You are a data analyst. Given a dataset (CSV or JSON), perform statistical analysis, identify key trends, and return a summary of your findings.',
+      category: 'Data',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
     {
-      id: '3',
-      name: 'Editor',
-      description: 'Refines and polishes content',
-      prompt: 'You are a meticulous editor. Review content for clarity, grammar, tone, and flow. Provide polished, publication-ready output.',
-      category: 'Writing',
+      id: '6',
+      name: 'Task Prioritizer',
+      description: 'Organizes a list of tasks based on priority.',
+      prompt: 'You are an expert project manager. Take the following list of tasks and organize them by priority (high, medium, low) and logical order of completion. Return the prioritized list.',
+      category: 'Planning',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -169,7 +169,7 @@ export default function App() {
   const handleCreateAgent = (agent: Omit<Agent, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newAgent: Agent = {
       ...agent,
-      id: Date.now().toString(),
+      id: Date.now().toString(), // NEED TO CHANGE ALL OF THIS TODO****//
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -178,15 +178,39 @@ export default function App() {
   };
 
   const handleAddNode = (agentId: string) => {
+    
+    // --- New ID Logic ---
+    // 1. Get all nodes that already use this agentId
+    const nodesOfThisType = nodes.filter(node => node.agentId === agentId);
+
+    // 2. Find the highest instance number already used
+    const instanceNumbers = nodesOfThisType.map(node => {
+      const parts = node.id.split('-');
+      // Get the last part of the ID (the instance number)
+      return parseInt(parts[parts.length - 1], 10);
+    }).filter(num => !isNaN(num)); // Filter out any that aren't numbers
+
+    // 3. Find the max number, or 0 if none exist
+    const maxInstance = instanceNumbers.length > 0 ? Math.max(...instanceNumbers) : 0;
+
+    // 4. The new instance number is the next one
+    const newInstanceNumber = maxInstance + 1;
+
+    // 5. Create the new ID (e.g., "3-2")
+    const newId = `${agentId}-${newInstanceNumber}`;
+    // --- End New ID Logic ---
+
     const newNode: WorkflowNode = {
-      id: `node-${Date.now()}`,
+      id: newId, // <-- Use the new ID
       agentId,
       position: { x: 100 + nodes.length * 50, y: 100 + nodes.length * 30 },
       status: 'idle',
     };
+    
     updateCurrentWorkflow({ nodes: [...nodes, newNode] });
   };
 
+  
   const handleUpdateNodePosition = (nodeId: string, position: { x: number; y: number }) => {
     updateCurrentWorkflow({
       nodes: nodes.map(node => 
@@ -222,7 +246,48 @@ export default function App() {
     });
   };
 
+  // --- ADDED ---
+  /**
+   * Gathers the current workflow's nodes and edges
+   * and formats them for the backend.
+   */
+const getFormattedWorkflowData = () => {
+    // 1. Find the current workflow object from state
+    const currentWorkflow = workflows.find(w => w.id === currentWorkflowId);
+
+    if (!currentWorkflow) {
+      console.error("Could not find the current workflow.");
+      return null;
+    }
+
+    // 2. Get the "list for nodes"
+    const nodesList = currentWorkflow.nodes.map(node => node.id);
+
+    // 3. Get the "list of tuples for edges"
+    const edgesList = currentWorkflow.connections.map(conn => [conn.sourceId, conn.targetId]);
+
+    // 4. Get the "workflow" (ID)
+    const workflowId = currentWorkflow.id;
+
+    // --- Here is the output you requested ---
+    console.log("Nodes List:", nodesList);
+    console.log("Edges List:", edgesList);
+    console.log("Workflow ID:", workflowId);
+    // ----------------------------------------
+
+    // 5. Create the final payload object with just those three items
+    const payload = {
+      workflow: workflowId,
+      nodes: nodesList,
+      edges: edgesList,
+    };
+    
+    // This return value is what gets used by the console.log in handleRunWorkflow
+    return payload;
+  };
+
   const simulateStreaming = async (nodeId: string, input: string): Promise<string> => {
+    // ... (rest of function) ...
     const node = nodes.find(n => n.id === nodeId);
     const agent = agents.find(a => a.id === node?.agentId);
     
@@ -232,6 +297,7 @@ export default function App() {
   };
 
   const getOutputTypeForAgent = (agentName: string): string => {
+    // ... (rest of function) ...
     const name = agentName.toLowerCase();
     if (name.includes('code') || name.includes('developer')) return '.py';
     if (name.includes('writer') || name.includes('content') || name.includes('editor')) return '.txt';
@@ -243,6 +309,14 @@ export default function App() {
   };
 
   const handleRunWorkflow = async () => {
+    
+    // --- ADDED ---
+    // Log the formatted data to the console
+    const workflowData = getFormattedWorkflowData();
+    console.log("Workflow data to send:", workflowData);
+    // You can now send this `workflowData` object to your backend here.
+    // -------------
+
     if (nodes.length === 0 || connections.length === 0) return;
     
     setIsRunning(true);
