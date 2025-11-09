@@ -5,9 +5,9 @@ from typing import List, Tuple
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from src.backend.agents.agent import createAgent
+from src.backend.agents.agent import createAgent, run_agent as execute_agent
 from src.backend.TextProcessing.call_llm import execute as generate_agent_prompt
-from src.backend.FAST.db import list_agents as getAllAgents, save_agent as persist_agent
+from src.backend.FAST.db import list_agents as getAllAgents, update_agent_io
 from collections import defaultdict, deque
 app = FastAPI()
 
@@ -115,6 +115,10 @@ class AgentCreateRequest(BaseModel):
     category: str
 
 
+class AgentRunRequest(BaseModel):
+    input_text: str
+
+
 @app.post("/workflow")
 async def root(workflow: WorkflowStruct):
     if not workflow.nodes:
@@ -158,18 +162,26 @@ async def create_agent(agent: AgentCreateRequest):
     except json.JSONDecodeError as exc:
         raise HTTPException(status_code=500, detail=f"LLM returned invalid JSON: {exc}") from exc
 
+    responsibilities = prompt_payload.get("responsibilities")
+    if not responsibilities or not isinstance(responsibilities, list):
+        raise HTTPException(status_code=500, detail="LLM blueprint missing responsibilities list.")
+
+    primary = responsibilities[0]
+    agent_name = primary.get("name", cleaned_name).strip() or cleaned_name
+    operations = primary.get("operations", "")
+    tool_req = [line.strip() for line in operations.splitlines() if line.strip()]
+    need_mcp = bool(tool_req)
+
     try:
-        data = prompt_payload['responsibilities']
         created_agent = createAgent(
-            prompt=data[''],
+            prompt=cleaned_prompt,
             tools=[],
-            name=prompt_payload,
-            needMCP=False,
-            tool_req=[],
+            name=agent_name,
+            needMCP=need_mcp,
+            tool_req=tool_req,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Unable to instantiate agent: {exc}") from exc
-    saveAgent(created_agent.id, created_agent, created_agent.prompt, created_agent.tools, created_agent.file_path)
     return {    
         "message": "Agent registered successfully.",
         "agent": {
@@ -180,7 +192,34 @@ async def create_agent(agent: AgentCreateRequest):
             "description": cleaned_description,
             "category": cleaned_category,
             "file_path": created_agent.file_path,
+            "input": created_agent.input_text,
+            "output": created_agent.output_text,
         },
+    }
+
+
+@app.post("/agents/{agent_id}/run")
+async def run_agent(agent_id: str, payload: AgentRunRequest):
+    user_input = payload.input_text
+    try:
+        output = await execute_agent(agent_id, user_input)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to run agent '{agent_id}': {exc}") from exc
+
+    try:
+        updated = update_agent_io(agent_id, input_text=user_input, output_text=output or "")
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to persist run result for '{agent_id}': {exc}") from exc
+
+    return {
+        "agentId": agent_id,
+        "input": updated.get("input_text", user_input),
+        "output": updated.get("output_text", output),
+        "updatedAt": updated.get("updated_at"),
     }
 
 @app.get("/database")

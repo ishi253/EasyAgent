@@ -8,15 +8,18 @@ import { AgentDetailPanel } from './AgentDetailPanel';
 interface AgentLibraryPageProps {
   agents: Agent[];
   onCreateAgent: (agent: Omit<Agent, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onAgentRunResult: (agentId: string, inputText: string, outputText: string) => void;
 }
 
-export function AgentLibraryPage({ agents, onCreateAgent }: AgentLibraryPageProps) {
+export function AgentLibraryPage({ agents, onCreateAgent, onAgentRunResult }: AgentLibraryPageProps) {
   const [open, setOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
+  const getTimestamp = (value?: string) => (value ? new Date(value).getTime() : 0);
+
   const sortedAgents = useMemo(
     () =>
-      [...agents].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+      [...agents].sort((a, b) => getTimestamp(b.createdAt) - getTimestamp(a.createdAt)),
     [agents]
   );
 
@@ -90,7 +93,11 @@ export function AgentLibraryPage({ agents, onCreateAgent }: AgentLibraryPageProp
                     </Paper>
                     <Collapse in={active} unmountOnExit>
                       <Paper variant="outlined" sx={{ p: 2 }}>
-                        <AgentDetailPanel agent={agent} onClose={() => setSelectedAgentId(null)} />
+                        <AgentDetailPanel
+                          agent={agent}
+                          onClose={() => setSelectedAgentId(null)}
+                          onRunAgentResult={onAgentRunResult}
+                        />
                       </Paper>
                     </Collapse>
                   </Stack>

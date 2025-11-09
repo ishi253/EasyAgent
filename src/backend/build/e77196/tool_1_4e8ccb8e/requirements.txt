@@ -1,0 +1,2 @@
+# Generated runtime requirements for the server
+mcp>=1.6

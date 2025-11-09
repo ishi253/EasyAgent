@@ -46,7 +46,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreateAgent }: CreateA
     console.log('Compiled agent data:', newAgentObject);
     if (!newAgentObject) return;
     try {
-      const response = await fetch(`${baseEnv}/agent`, {
+      const response = await fetch(`${baseEnv}/agents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newAgentObject),

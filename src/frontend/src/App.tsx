@@ -17,6 +17,10 @@ export interface Agent {
   description: string;
   prompt: string;
   category: string;
+  lastInput?: string;
+  lastOutput?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface WorkflowNode {
@@ -55,6 +59,8 @@ export interface Workflow {
   updatedAt: string;
 }
 
+const fallbackTimestamp = new Date().toISOString();
+
 const FALLBACK_AGENTS: Agent[] = [
   {
     id: '1',
@@ -62,7 +68,11 @@ const FALLBACK_AGENTS: Agent[] = [
     description: 'Gathers and analyzes information',
     prompt:
       'You are a research specialist. Analyze the input and extract key insights, facts, and relevant information. Present findings in a structured format.',
-    category: 'Research'
+    category: 'Research',
+    lastInput: '',
+    lastOutput: '',
+    createdAt: fallbackTimestamp,
+    updatedAt: fallbackTimestamp,
   },
   {
     id: '5',
@@ -70,7 +80,11 @@ const FALLBACK_AGENTS: Agent[] = [
     description: 'Analyzes datasets to find trends and insights.',
     prompt:
       'You are a data analyst. Given a dataset (CSV or JSON), perform statistical analysis, identify key trends, and return a summary of your findings.',
-    category: 'Data'
+    category: 'Data',
+    lastInput: '',
+    lastOutput: '',
+    createdAt: fallbackTimestamp,
+    updatedAt: fallbackTimestamp,
   },
   {
     id: '6',
@@ -78,7 +92,11 @@ const FALLBACK_AGENTS: Agent[] = [
     description: 'Organizes a list of tasks based on priority.',
     prompt:
       'You are an expert project manager. Take the following list of tasks and organize them by priority (high, medium, low) and logical order of completion. Return the prioritized list.',
-    category: 'Planning'
+    category: 'Planning',
+    lastInput: '',
+    lastOutput: '',
+    createdAt: fallbackTimestamp,
+    updatedAt: fallbackTimestamp,
   },
   {
     id: '4',
@@ -86,7 +104,11 @@ const FALLBACK_AGENTS: Agent[] = [
     description: 'Generates code from specifications',
     prompt:
       'You are a senior software engineer. Convert specifications and requirements into clean, well-documented code following best practices.',
-    category: 'Development'
+    category: 'Development',
+    lastInput: '',
+    lastOutput: '',
+    createdAt: fallbackTimestamp,
+    updatedAt: fallbackTimestamp,
   },
 ];
 
@@ -98,19 +120,26 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
 
-    const normalizeAgentRecord = (record: any, index: number): Agent => {
-      const rawPrompt = record?.prompt ?? '';
-      const normalizedPrompt =
-        typeof rawPrompt === 'string' ? rawPrompt : JSON.stringify(rawPrompt ?? {}, null, 2);
+  const normalizeAgentRecord = (record: any, index: number): Agent => {
+    const rawPrompt = record?.prompt ?? '';
+    const normalizedPrompt =
+      typeof rawPrompt === 'string' ? rawPrompt : JSON.stringify(rawPrompt ?? {}, null, 2);
 
-      return {
-        id: String(record?.agent_id ?? record?.id ?? `agent-${index}`),
-        name: record?.name ?? `Agent ${index + 1}`,
-        description: record?.description ?? 'No description provided.',
-        prompt: normalizedPrompt || 'Prompt unavailable.',
-        category: record?.category ?? 'General',
-      };
+    const createdAt = record?.created_at ?? record?.createdAt ?? new Date().toISOString();
+    const updatedAt = record?.updated_at ?? record?.updatedAt ?? createdAt;
+
+    return {
+      id: String(record?.agent_id ?? record?.id ?? `agent-${index}`),
+      name: record?.name ?? `Agent ${index + 1}`,
+      description: record?.description ?? 'No description provided.',
+      prompt: normalizedPrompt || 'Prompt unavailable.',
+      category: record?.category ?? 'General',
+      lastInput: record?.input_text ?? record?.input ?? '',
+      lastOutput: record?.output_text ?? record?.output ?? '',
+      createdAt,
+      updatedAt,
     };
+  };
 
     const fetchAgents = async () => {
       try {
@@ -222,11 +251,27 @@ export default function App() {
 
   // Agent creation lives only here, invoked by AgentLibraryPage
   const handleCreateAgent = (agent: Omit<Agent, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const timestamp = new Date().toISOString();
     const newAgent: Agent = {
       ...agent,
       id: Date.now().toString(), //FIX THIS
+      lastInput: '',
+      lastOutput: '',
+      createdAt: timestamp,
+      updatedAt: timestamp,
     };
     setAgents((prev) => [...prev, newAgent]);
+  };
+
+  const handleAgentRunResult = (agentId: string, inputText: string, outputText: string) => {
+    const timestamp = new Date().toISOString();
+    setAgents((prev) =>
+      prev.map((agent) =>
+        agent.id === agentId
+          ? { ...agent, lastInput: inputText, lastOutput: outputText, updatedAt: timestamp }
+          : agent
+      )
+    );
   };
 
   // Canvas actions
@@ -538,7 +583,11 @@ export default function App() {
           </>
         ) : (
           <Box flex={1} overflow="hidden">
-            <AgentLibraryPage agents={agents} onCreateAgent={handleCreateAgent} />
+            <AgentLibraryPage
+              agents={agents}
+              onCreateAgent={handleCreateAgent}
+              onAgentRunResult={handleAgentRunResult}
+            />
           </Box>
         )}
       </Box>

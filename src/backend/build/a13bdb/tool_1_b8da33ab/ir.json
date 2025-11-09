@@ -1,0 +1,43 @@
+{
+  "server_name": "math-operations",
+  "description": "Simple mathematical operations server",
+  "tools": [
+    {
+      "name": "add",
+      "description": "Add two numbers together and return their sum",
+      "parameters": [
+        {
+          "name": "a",
+          "type": "float",
+          "description": "First number to add",
+          "default": null
+        },
+        {
+          "name": "b",
+          "type": "float",
+          "description": "Second number to add",
+          "default": null
+        }
+      ],
+      "return_type": "float",
+      "implementation": "    result = a + b\n    return result",
+      "is_async": false
+    }
+  ],
+  "dependencies": [],
+  "environment": {
+    "workdir_required": false,
+    "network_access": false
+  },
+  "tests": [
+    {
+      "tool": "add",
+      "args": {
+        "a": 5,
+        "b": 3
+      },
+      "expected_result": 8,
+      "assertion": "equals"
+    }
+  ]
+}

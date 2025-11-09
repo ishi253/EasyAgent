@@ -7,7 +7,8 @@ import threading
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Awaitable, Callable, List, TypeVar
+import re
+from typing import Awaitable, Callable, List, Tuple, TypeVar
 
 from dedalus_labs import AsyncDedalus, DedalusRunner
 from dotenv import load_dotenv
@@ -19,9 +20,55 @@ from backend.mcpgen.planner import plan as _plan
 T = TypeVar("T")
 
 DEFAULT_BUILD_ROOT = Path(__file__).resolve().parent.parent / "build"
+AIDS_FILE = Path(__file__).resolve().parent.parent / "TextProcessing" / "aids.txt"
 
 # expose planner for monkeypatching in tests
 plan_async = _plan
+
+
+def _load_prebuilt_aids() -> List[Tuple[str, set[str]]]:
+    """Return list of (entry, keyword set) pairs parsed from aids.txt."""
+    if not AIDS_FILE.exists():
+        return []
+
+    entries: List[Tuple[str, set[str]]] = []
+    raw = AIDS_FILE.read_text(encoding="utf-8")
+    for line in raw.splitlines():
+        entry = line.strip()
+        if not entry or entry.startswith("#"):
+            continue
+
+        normalized = entry.lower()
+        keywords = set(token for token in re.split(r"[^\w]+", normalized) if token)
+        keywords.add(normalized)
+        entries.append((entry, keywords))
+    return entries
+
+
+PREBUILT_AIDS = _load_prebuilt_aids()
+
+
+def _match_prebuilt_tools(requirements: List[str]) -> Tuple[List[str], List[str]]:
+    """Return matched prebuilt MCP IDs plus the unmet requirement texts."""
+    if not requirements:
+        return [], []
+
+    matches: List[str] = []
+    matched_indices: set[int] = set()
+    normalized_entries = PREBUILT_AIDS
+    if not normalized_entries:
+        return [], requirements
+    for idx, req in enumerate(requirements):
+        lower_req = req.lower()
+        for entry, keywords in normalized_entries:
+            if any(keyword in lower_req for keyword in keywords):
+                matches.append(entry)
+                matched_indices.add(idx)
+                break
+
+    unmatched = [req for idx, req in enumerate(requirements) if idx not in matched_indices]
+    unique_matches = sorted(set(matches))
+    return unique_matches, unmatched
 
 
 async def run_agent(agentId: str, input: str):
@@ -36,7 +83,7 @@ async def run_agent(agentId: str, input: str):
 
     result = await runner.run(  # type: ignore[arg-type]
         input=agent.prompt,
-        model=["claude-sonnet-4"],
+        model="claude-sonnet-4",
         mcp_servers=agent.tools,
         stream=False,
     )
@@ -107,8 +154,12 @@ def createAgent(prompt: str, tools: List[str], name: str, needMCP: bool, tool_re
 
     tool_list = list(tools)
     generated_paths: List[str] = []
+    prebuilt_tools, remaining_tool_req = _match_prebuilt_tools(list(tool_req))
+    if prebuilt_tools:
+        tool_list.extend(prebuilt_tools)
+    tool_req = remaining_tool_req
 
-    if needMCP:
+    if tool_req:
         gen_index = 0
         for req in tool_req:
             spec = req.strip()
@@ -127,8 +178,10 @@ def createAgent(prompt: str, tools: List[str], name: str, needMCP: bool, tool_re
         name=name,
         prompt=prompt,
         tools=tool_list,
-        need_mcp=bool(generated_paths or needMCP),
+        need_mcp=bool(generated_paths),
         file_path=primary_file_path,
+        input_text="",
+        output_text="",
     )
 
     return Agent(prompt, tool_list, name, agent_id, file_path=primary_file_path)
@@ -172,6 +225,8 @@ def loadAgent(agent_id: str, *, regenerate_missing_tools: bool = True) -> Agent:
         name=record["name"],
         id=record["agent_id"],
         file_path=file_path,
+        input_text=record.get("input_text", ""),
+        output_text=record.get("output_text", ""),
     )
 
 
@@ -182,3 +237,5 @@ class Agent:
     name: str
     id: str
     file_path: str = ""
+    input_text: str = ""
+    output_text: str = ""

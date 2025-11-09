@@ -1,0 +1,174 @@
+{
+  "server_name": "prompt-enhancer",
+  "description": "MCP server for enhancing and optimizing prompts for various AI models and use cases",
+  "tools": [
+    {
+      "name": "enhance_prompt",
+      "description": "Enhance a basic prompt with better structure, clarity, and specificity",
+      "parameters": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "description": "The original prompt to enhance",
+          "default": null
+        },
+        {
+          "name": "target_model",
+          "type": "str",
+          "description": "Target AI model type (gpt, claude, llama, general)",
+          "default": "general"
+        },
+        {
+          "name": "style",
+          "type": "str",
+          "description": "Enhancement style (detailed, concise, creative, technical)",
+          "default": "detailed"
+        }
+      ],
+      "return_type": "Dict[str, str]",
+      "implementation": "    import re\n    \n    # Base enhancement templates\n    templates = {\n        'detailed': 'Context: {context}\\n\\nTask: {task}\\n\\nRequirements:\\n{requirements}\\n\\nOutput Format: {format}',\n        'concise': '{task} Specifically: {specifics}',\n        'creative': 'Imagine: {context}\\n\\nYour creative challenge: {task}\\n\\nStyle notes: {style_notes}',\n        'technical': 'Objective: {task}\\n\\nConstraints: {constraints}\\n\\nExpected Output: {output}\\n\\nAcceptance Criteria: {criteria}'\n    }\n    \n    # Extract key components from original prompt\n    prompt_lower = prompt.lower()\n    \n    # Identify task\n    task = prompt\n    if 'please' in prompt_lower:\n        task = re.sub(r'please\\s+', '', prompt, flags=re.IGNORECASE)\n    \n    # Add model-specific optimizations\n    model_tips = {\n        'gpt': 'Be clear and specific. ',\n        'claude': 'Provide context and examples. ',\n        'llama': 'Use structured format. ',\n        'general': ''\n    }\n    \n    # Build enhanced prompt based on style\n    if style == 'detailed':\n        enhanced = templates['detailed'].format(\n            context='Working with: ' + target_model + ' model',\n            task=task,\n            requirements='- Be specific and actionable\\n- Provide clear output',\n            format='Structured response with clear sections'\n        )\n    elif style == 'concise':\n        enhanced = templates['concise'].format(\n            task=task.split('.')[0] if '.' in task else task,\n            specifics='with clear, actionable output'\n        )\n    elif style == 'creative':\n        enhanced = templates['creative'].format(\n            context='a scenario where expertise meets creativity',\n            task=task,\n            style_notes='Be innovative while maintaining clarity'\n        )\n    else:  # technical\n        enhanced = templates['technical'].format(\n            task=task,\n            constraints='Accuracy, clarity, and completeness',\n            output='Well-structured, technically sound response',\n            criteria='Correctness, completeness, and clarity'\n        )\n    \n    # Add model-specific prefix\n    enhanced = model_tips.get(target_model, '') + enhanced\n    \n    return {\n        'original': prompt,\n        'enhanced': enhanced.strip(),\n        'style': style,\n        'target_model': target_model\n    }",
+      "is_async": false
+    },
+    {
+      "name": "add_examples",
+      "description": "Add relevant examples to a prompt to improve AI understanding",
+      "parameters": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "description": "The prompt to add examples to",
+          "default": null
+        },
+        {
+          "name": "num_examples",
+          "type": "int",
+          "description": "Number of examples to add (1-3)",
+          "default": 2
+        }
+      ],
+      "return_type": "str",
+      "implementation": "    # Detect prompt type and add relevant examples\n    prompt_lower = prompt.lower()\n    \n    # Limit examples\n    num_examples = min(max(num_examples, 1), 3)\n    \n    examples = []\n    \n    if any(word in prompt_lower for word in ['write', 'create', 'generate', 'compose']):\n        examples = [\n            'Example: If asked to write about technology, provide a balanced view with specific innovations and impacts.',\n            'Example: When creating content, use clear structure with introduction, body, and conclusion.',\n            'Example: Generate text that is engaging, informative, and appropriate for the target audience.'\n        ]\n    elif any(word in prompt_lower for word in ['analyze', 'evaluate', 'assess', 'review']):\n        examples = [\n            'Example: Analysis should include key points, supporting evidence, and logical conclusions.',\n            'Example: Evaluation should consider multiple perspectives and provide balanced judgment.',\n            'Example: Assessment should be systematic, covering all relevant aspects thoroughly.'\n        ]\n    elif any(word in prompt_lower for word in ['explain', 'describe', 'clarify', 'define']):\n        examples = [\n            'Example: Explanations should progress from simple to complex, using clear language.',\n            'Example: Descriptions should be vivid and specific, helping readers visualize concepts.',\n            'Example: Definitions should be precise, with context and practical applications.'\n        ]\n    elif any(word in prompt_lower for word in ['list', 'enumerate', 'outline', 'summarize']):\n        examples = [\n            'Example: Lists should be organized logically with consistent formatting.',\n            'Example: Outlines should show clear hierarchy and relationships between points.',\n            'Example: Summaries should capture key points concisely while maintaining accuracy.'\n        ]\n    else:\n        examples = [\n            'Example: Provide specific, actionable responses.',\n            'Example: Include relevant details and context.',\n            'Example: Ensure clarity and completeness in your response.'\n        ]\n    \n    # Select requested number of examples\n    selected_examples = examples[:num_examples]\n    \n    # Format the enhanced prompt\n    enhanced = prompt.rstrip('.')\n    enhanced += '.\\n\\n' + '\\n'.join(selected_examples)\n    \n    return enhanced",
+      "is_async": false
+    },
+    {
+      "name": "add_constraints",
+      "description": "Add specific constraints and requirements to a prompt",
+      "parameters": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "description": "The prompt to add constraints to",
+          "default": null
+        },
+        {
+          "name": "word_limit",
+          "type": "int",
+          "description": "Maximum word count (0 for no limit)",
+          "default": 0
+        },
+        {
+          "name": "format_type",
+          "type": "str",
+          "description": "Output format (paragraph, bullet, numbered, json, markdown)",
+          "default": "paragraph"
+        },
+        {
+          "name": "tone",
+          "type": "str",
+          "description": "Desired tone (formal, casual, technical, creative)",
+          "default": "formal"
+        }
+      ],
+      "return_type": "str",
+      "implementation": "    # Build constraints section\n    constraints = []\\n    \n    if word_limit > 0:\n        constraints.append(f'Word limit: {word_limit} words')\n    \n    # Format specifications\n    format_specs = {\n        'paragraph': 'Use clear paragraphs with proper transitions',\n        'bullet': 'Format as bullet points (- item)',\n        'numbered': 'Format as numbered list (1. item)',\n        'json': 'Return valid JSON format',\n        'markdown': 'Use Markdown formatting with headers and emphasis'\n    }\n    \n    if format_type in format_specs:\n        constraints.append(f'Format: {format_specs[format_type]}')\n    \n    # Tone specifications\n    tone_specs = {\n        'formal': 'Use professional, formal language',\n        'casual': 'Use conversational, friendly tone',\n        'technical': 'Use precise technical terminology',\n        'creative': 'Use engaging, creative expression'\n    }\n    \n    if tone in tone_specs:\n        constraints.append(f'Tone: {tone_specs[tone]}')\n    \n    # Additional standard constraints\n    constraints.extend([\n        'Be accurate and factual',\n        'Provide complete information',\n        'Maintain consistency throughout'\n    ])\n    \n    # Format the enhanced prompt\n    enhanced = prompt.rstrip('.')\n    enhanced += '.\\n\\nConstraints and Requirements:\\n'\n    enhanced += '\\n'.join(f'- {c}' for c in constraints)\n    \n    return enhanced",
+      "is_async": false
+    },
+    {
+      "name": "create_chain_of_thought",
+      "description": "Convert a prompt into a chain-of-thought reasoning format",
+      "parameters": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "description": "The prompt to convert to chain-of-thought format",
+          "default": null
+        },
+        {
+          "name": "steps",
+          "type": "int",
+          "description": "Number of reasoning steps to include (2-5)",
+          "default": 3
+        }
+      ],
+      "return_type": "str",
+      "implementation": "    # Limit steps to reasonable range\n    steps = min(max(steps, 2), 5)\n    \n    # Create chain-of-thought template\n    cot_prompt = f'{prompt}\\n\\nLet\\'s approach this step-by-step:\\n\\n'\n    \n    # Generate step descriptions based on prompt content\n    prompt_lower = prompt.lower()\n    \n    if any(word in prompt_lower for word in ['solve', 'calculate', 'compute', 'math']):\n        step_templates = [\n            'Step 1: Identify the given information and what we need to find',\n            'Step 2: Determine the appropriate method or formula',\n            'Step 3: Apply the method systematically',\n            'Step 4: Verify the solution for correctness',\n            'Step 5: Present the final answer with units if applicable'\n        ]\n    elif any(word in prompt_lower for word in ['analyze', 'evaluate', 'compare']):\n        step_templates = [\n            'Step 1: Identify key components or criteria',\n            'Step 2: Examine each component in detail',\n            'Step 3: Compare and contrast findings',\n            'Step 4: Synthesize insights',\n            'Step 5: Draw conclusions'\n        ]\n    elif any(word in prompt_lower for word in ['write', 'create', 'generate']):\n        step_templates = [\n            'Step 1: Understand the requirements and audience',\n            'Step 2: Outline the main points or structure',\n            'Step 3: Develop each section with details',\n            'Step 4: Review for coherence and flow',\n            'Step 5: Polish and finalize'\n        ]\n    else:\n        step_templates = [\n            'Step 1: Understand the core question or task',\n            'Step 2: Gather relevant information',\n            'Step 3: Process and organize the information',\n            'Step 4: Formulate the response',\n            'Step 5: Review and refine the answer'\n        ]\n    \n    # Add selected number of steps\n    for i in range(steps):\n        cot_prompt += step_templates[i] + '\\n'\n    \n    cot_prompt += '\\nNow, let\\'s work through each step to arrive at the answer.'\n    \n    return cot_prompt",
+      "is_async": false
+    },
+    {
+      "name": "optimize_for_context_window",
+      "description": "Optimize a prompt to fit within token/character limits while preserving meaning",
+      "parameters": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "description": "The prompt to optimize",
+          "default": null
+        },
+        {
+          "name": "max_chars",
+          "type": "int",
+          "description": "Maximum character limit",
+          "default": 2000
+        },
+        {
+          "name": "preserve_examples",
+          "type": "bool",
+          "description": "Whether to preserve examples in the prompt",
+          "default": true
+        }
+      ],
+      "return_type": "Dict[str, Any]",
+      "implementation": "    import re\n    \n    original_length = len(prompt)\n    \n    if original_length <= max_chars:\n        return {\n            'optimized': prompt,\n            'original_length': original_length,\n            'optimized_length': original_length,\n            'reduction_percentage': 0.0,\n            'removed_elements': []\n        }\n    \n    # Track what we remove\n    removed = []\n    optimized = prompt\n    \n    # Remove redundant whitespace\n    optimized = re.sub(r'\\s+', ' ', optimized).strip()\n    if len(optimized) < len(prompt):\n        removed.append('redundant whitespace')\n    \n    # Remove filler words if still too long\n    if len(optimized) > max_chars:\n        filler_words = [\n            r'\\b(basically|actually|really|very|quite|rather|somewhat|fairly)\\b',\n            r'\\b(in order to)\\b',\n            r'\\b(the fact that)\\b',\n            r'\\b(it is important to note that)\\b'\n        ]\n        for pattern in filler_words:\n            if len(optimized) > max_chars:\n                new_optimized = re.sub(pattern, '', optimized, flags=re.IGNORECASE)\n                if len(new_optimized) < len(optimized):\n                    optimized = re.sub(r'\\s+', ' ', new_optimized).strip()\n                    removed.append('filler words')\n    \n    # Remove examples if needed and not preserving\n    if not preserve_examples and len(optimized) > max_chars:\n        example_pattern = r'(Example:.*?\\.)|(For example.*?\\.)|(e\\.g\\..*?\\.)'\n        new_optimized = re.sub(example_pattern, '', optimized, flags=re.IGNORECASE)\n        if len(new_optimized) < len(optimized):\n            optimized = re.sub(r'\\s+', ' ', new_optimized).strip()\n            removed.append('examples')\n    \n    # Truncate with ellipsis if still too long\n    if len(optimized) > max_chars:\n        optimized = optimized[:max_chars-3] + '...'\n        removed.append('truncated end')\n    \n    reduction_pct = ((original_length - len(optimized)) / original_length * 100) if original_length > 0 else 0\n    \n    return {\n        'optimized': optimized,\n        'original_length': original_length,\n        'optimized_length': len(optimized),\n        'reduction_percentage': round(reduction_pct, 1),\n        'removed_elements': removed\n    }",
+      "is_async": false
+    }
+  ],
+  "dependencies": [],
+  "environment": {
+    "workdir_required": false,
+    "network_access": false
+  },
+  "tests": [
+    {
+      "tool": "enhance_prompt",
+      "args": {
+        "prompt": "Write a story",
+        "style": "concise"
+      },
+      "expected_result": {
+        "original": "Write a story",
+        "enhanced": "Write a story Specifically: with clear, actionable output",
+        "style": "concise",
+        "target_model": "general"
+      },
+      "assertion": "equals"
+    },
+    {
+      "tool": "add_examples",
+      "args": {
+        "prompt": "Explain quantum computing",
+        "num_examples": 1
+      },
+      "expected_result": "Explain quantum computing.\n\nExample: Explanations should progress from simple to complex, using clear language.",
+      "assertion": "equals"
+    },
+    {
+      "tool": "create_chain_of_thought",
+      "args": {
+        "prompt": "Solve this problem",
+        "steps": 2
+      },
+      "expected_result": "Solve this problem\n\nLet's approach this step-by-step:\n\nStep 1: Identify the given information and what we need to find\nStep 2: Determine the appropriate method or formula\n\nNow, let's work through each step to arrive at the answer.",
+      "assertion": "equals"
+    }
+  ]
+}

@@ -5,7 +5,8 @@ The backend uses two dataset files under ``src/backend/db``:
 
 1. Agent Dataset (agents.db)
    Table schema: agents(agent_id TEXT PK, name TEXT, prompt TEXT, tools JSON,
-   need_mcp INTEGER, file_path TEXT, created_at TEXT, updated_at TEXT)
+   need_mcp INTEGER, file_path TEXT, input_text TEXT, output_text TEXT,
+   created_at TEXT, updated_at TEXT)
 
 2. Workflow Dataset (workflows.db)
    Table schema: workflows(workflow_id TEXT PK, display_name TEXT, nodes JSON,
@@ -83,12 +84,16 @@ def init_db() -> None:
                 tools TEXT NOT NULL,
                 need_mcp INTEGER NOT NULL DEFAULT 0,
                 file_path TEXT,
+                input_text TEXT,
+                output_text TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
             """
         )
         _ensure_column(conn, "agents", "file_path", "TEXT")
+        _ensure_column(conn, "agents", "input_text", "TEXT")
+        _ensure_column(conn, "agents", "output_text", "TEXT")
     with get_workflow_connection() as conn:
         conn.execute(
             """
@@ -114,7 +119,9 @@ def _row_to_agent(row: sqlite3.Row) -> Dict[str, Any]:
         "prompt": row["prompt"],
         "tools": json.loads(row["tools"]),
         "need_mcp": bool(row["need_mcp"]),
-        "file_path": row["file_path"],
+        "file_path": row["file_path"] or "",
+        "input_text": row["input_text"] or "",
+        "output_text": row["output_text"] or "",
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
     }
@@ -139,6 +146,9 @@ def save_agent(
     name: str,
     prompt: str,
     tools: List[str],
+    need_mcp: bool = False,
+    input_text: Optional[str] = None,
+    output_text: Optional[str] = None,
     file_path: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Insert or update an agent configuration."""
@@ -152,20 +162,24 @@ def save_agent(
         "tools": tools,
         "need_mcp": need_mcp,
         "file_path": file_path or "",
+        "input_text": input_text or "",
+        "output_text": output_text or "",
         "created_at": timestamp,
         "updated_at": timestamp,
     }
     with get_agent_connection() as conn:
         conn.execute(
             """
-            INSERT INTO agents (agent_id, name, prompt, tools, need_mcp, file_path, created_at, updated_at)
-            VALUES (:agent_id, :name, :prompt, :tools, :need_mcp, :file_path, :created_at, :updated_at)
+            INSERT INTO agents (agent_id, name, prompt, tools, need_mcp, file_path, input_text, output_text, created_at, updated_at)
+            VALUES (:agent_id, :name, :prompt, :tools, :need_mcp, :file_path, :input_text, :output_text, :created_at, :updated_at)
             ON CONFLICT(agent_id) DO UPDATE SET
                 name=excluded.name,
                 prompt=excluded.prompt,
                 tools=excluded.tools,
                 need_mcp=excluded.need_mcp,
                 file_path=excluded.file_path,
+                input_text=excluded.input_text,
+                output_text=excluded.output_text,
                 updated_at=excluded.updated_at;
             """,
             {
@@ -197,6 +211,45 @@ def delete_agent(agent_id: str) -> bool:
         cursor = conn.execute("DELETE FROM agents WHERE agent_id = ?", (agent_id,))
         conn.commit()
     return cursor.rowcount > 0
+
+
+def update_agent_io(
+    agent_id: str,
+    *,
+    input_text: Optional[str] = None,
+    output_text: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Persist the latest agent input/output pair."""
+    if input_text is None and output_text is None:
+        raise ValueError("At least one of input_text or output_text must be provided.")
+
+    timestamp = _now_timestamp()
+    with get_agent_connection() as conn:
+        cursor = conn.execute(
+            """
+            UPDATE agents
+            SET
+                input_text = COALESCE(:input_text, input_text),
+                output_text = COALESCE(:output_text, output_text),
+                updated_at = :updated_at
+            WHERE agent_id = :agent_id
+            """,
+            {
+                "agent_id": agent_id,
+                "input_text": input_text,
+                "output_text": output_text,
+                "updated_at": timestamp,
+            },
+        )
+        conn.commit()
+
+    if cursor.rowcount == 0:
+        raise ValueError(f"Agent '{agent_id}' not found.")
+
+    updated = get_agent(agent_id)
+    if not updated:
+        raise ValueError(f"Agent '{agent_id}' not found after update.")
+    return updated
 
 
 def save_workflow(
