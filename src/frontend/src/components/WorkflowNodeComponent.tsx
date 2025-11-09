@@ -1,9 +1,19 @@
 import { useRef, useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  IconButton,
+  Stack,
+  Typography,
+  CircularProgress,
+} from '@mui/material';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import { WorkflowNode, Agent } from '../App';
-import { Card } from './ui/card';
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
-import { Trash2, Circle, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface WorkflowNodeComponentProps {
   node: WorkflowNode;
@@ -74,91 +84,111 @@ export function WorkflowNodeComponent({
     }
   }, [isDragging]);
 
-  const getStatusIcon = () => {
+  const statusStyles = {
+    idle: {
+      borderColor: 'divider',
+      shadow: '0 8px 20px rgba(15,23,42,0.08)',
+      color: 'text.secondary',
+    },
+    processing: {
+      borderColor: 'primary.main',
+      shadow: '0 12px 25px rgba(37,99,235,0.25)',
+      color: 'primary.main',
+    },
+    complete: {
+      borderColor: 'success.main',
+      shadow: '0 12px 25px rgba(34,197,94,0.25)',
+      color: 'success.main',
+    },
+    error: {
+      borderColor: 'error.main',
+      shadow: '0 12px 25px rgba(239,68,68,0.25)',
+      color: 'error.main',
+    },
+  } as const;
+
+  const renderStatusIcon = () => {
     switch (node.status) {
       case 'processing':
-        return <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />;
+        return <CircularProgress size={20} thickness={6} color="inherit" />;
       case 'complete':
-        return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+        return <CheckCircleIcon fontSize="small" />;
       case 'error':
-        return <AlertCircle className="w-4 h-4 text-red-500" />;
+        return <ErrorOutlineIcon fontSize="small" />;
       default:
-        return <Circle className="w-4 h-4 text-slate-400" />;
+        return <RadioButtonUncheckedIcon fontSize="small" />;
     }
-  };
-
-  const getStatusColor = () => {
-    switch (node.status) {
-      case 'processing':
-        return 'border-blue-500 shadow-lg shadow-blue-500/20';
-      case 'complete':
-        return 'border-green-500 shadow-lg shadow-green-500/20';
-      case 'error':
-        return 'border-red-500 shadow-lg shadow-red-500/20';
-      default:
-        return 'border-slate-200';
-    }
-  };
-
-  const getCursorStyle = () => {
-    if (isConnectionMode) return 'cursor-pointer';
-    return 'cursor-move';
   };
 
   return (
-    <div
+    <Box
       ref={nodeRef}
-      className="absolute"
-      style={{
+      sx={{
+        position: 'absolute',
         left: node.position.x,
         top: node.position.y,
+        width: 320,
         zIndex: 10,
-        width: 300,
       }}
     >
       <Card
-        className={`${getCursorStyle()} transition-all ${getStatusColor()} ${
-          isDragging ? 'opacity-80' : ''
-        } ${isConnecting ? 'ring-4 ring-blue-500 ring-offset-2' : ''} ${
-          isConnectionMode ? 'hover:ring-2 hover:ring-blue-400' : ''
-        }`}
+        elevation={isConnecting ? 8 : 4}
         onMouseDown={handleMouseDown}
+        sx={{
+          border: '2px solid',
+          borderColor: statusStyles[node.status].borderColor,
+          boxShadow: statusStyles[node.status].shadow,
+          cursor: isConnectionMode ? 'pointer' : 'grab',
+          opacity: isDragging ? 0.8 : 1,
+          transition: 'box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease',
+          transform: isConnecting ? 'translateY(-2px)' : 'none',
+          position: 'relative',
+        }}
       >
-        <div className="p-4">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                {getStatusIcon()}
-                <h4 className="text-slate-900">{agent.name}</h4>
-              </div>
-              <Badge variant="secondary" className="text-xs">
-                {agent.category}
-              </Badge>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
+        {isConnecting && (
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: -6,
+              borderRadius: 3,
+              border: '2px solid',
+              borderColor: 'primary.light',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
+        <CardContent>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2} mb={2}>
+            <Box flex={1} minWidth={0}>
+              <Stack direction="row" spacing={1} alignItems="center" color={statusStyles[node.status].color} mb={0.5}>
+                {renderStatusIcon()}
+                <Typography variant="subtitle1" color="text.primary" fontWeight={600}>
+                  {agent.name}
+                </Typography>
+              </Stack>
+              <Chip label={agent.category} size="small" color="secondary" variant="outlined" />
+            </Box>
+            <IconButton
+              size="small"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(node.id);
               }}
-              className="h-8 w-8 p-0"
             >
-              <Trash2 className="w-4 h-4 text-red-500" />
-            </Button>
-          </div>
-          
-          <p className="text-slate-600 mb-3">{agent.description}</p>
-          
-          <div className="flex items-center justify-center">
-            <div className="text-center text-slate-500">
-              {node.status === 'processing' && 'Processing...'}
-              {node.status === 'complete' && 'Complete'}
-              {node.status === 'idle' && 'Ready'}
-            </div>
-          </div>
-        </div>
+              <DeleteOutlineIcon fontSize="small" color="error" />
+            </IconButton>
+          </Stack>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            {agent.description}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" textAlign="center">
+            {node.status === 'processing' && 'Processing…'}
+            {node.status === 'complete' && 'Complete'}
+            {node.status === 'idle' && 'Ready'}
+            {node.status === 'error' && 'Needs Attention'}
+          </Typography>
+        </CardContent>
       </Card>
-    </div>
+    </Box>
   );
 }

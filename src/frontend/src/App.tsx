@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Box, Button, Paper, Stack, Typography } from '@mui/material';
+import LinkIcon from '@mui/icons-material/Link';
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
+import StopRoundedIcon from '@mui/icons-material/StopRounded';
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import { WorkflowCanvas } from './components/WorkflowCanvas';
 import { AgentSidebar } from './components/AgentSidebar';
 import { StreamingPanel } from './components/StreamingPanel';
 import { WorkflowTabs } from './components/WorkflowTabs';
-import { Button } from './components/ui/button';
-import { Play, Square, Link2 } from 'lucide-react';
 import { AgentLibraryPage } from './components/AgentLibraryPage';
 
 const baseEnv = "http://127.0.0.1:8000"
@@ -411,115 +414,134 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="mb-1">Agent Workflow Studio</h1>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={currentPage === 'library' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setCurrentPage('library')}
-              >
-                Agent Library
-              </Button>
-              <Button
-                variant={currentPage === 'workflow' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setCurrentPage('workflow')}
-              >
-                Workflow Studio
-              </Button>
-            </div>
-          </div>
+    <Box height="100vh" display="flex" flexDirection="column" bgcolor="background.default">
+      <Paper
+        square
+        elevation={0}
+        sx={{
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          px: { xs: 2, md: 4 },
+          py: 3,
+        }}
+      >
+        <Stack spacing={currentPage === 'workflow' ? 2 : 1}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            justifyContent="space-between"
+            alignItems={{ xs: 'flex-start', md: 'center' }}
+            spacing={2}
+          >
+            <Box>
+              <Typography variant="h4" fontWeight={600} gutterBottom>
+                Agent Workflow Studio
+              </Typography>
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant={currentPage === 'library' ? 'contained' : 'text'}
+                  size="small"
+                  onClick={() => setCurrentPage('library')}
+                >
+                  Agent Library
+                </Button>
+                <Button
+                  variant={currentPage === 'workflow' ? 'contained' : 'text'}
+                  size="small"
+                  onClick={() => setCurrentPage('workflow')}
+                >
+                  Workflow Studio
+                </Button>
+              </Stack>
+            </Box>
+
+            {currentPage === 'workflow' && (
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Button
+                  variant={isConnectionMode ? 'contained' : 'outlined'}
+                  color={isConnectionMode ? 'primary' : 'inherit'}
+                  onClick={() => setIsConnectionMode(!isConnectionMode)}
+                  disabled={isRunning || nodes.length < 2}
+                  startIcon={<LinkIcon fontSize="small" />}
+                >
+                  {isConnectionMode ? 'Connecting…' : 'Add Connection'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleClearWorkflow}
+                  disabled={isRunning || nodes.length === 0}
+                >
+                  Clear Canvas
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<SaveOutlinedIcon fontSize="small" />}
+                  onClick={handleStopWorkflow}
+                  disabled={isRunning || nodes.length === 0}
+                >
+                  Save Workflow
+                </Button>
+                {isRunning ? (
+                  <Button
+                    color="error"
+                    variant="contained"
+                    onClick={handleStopWorkflow}
+                    startIcon={<StopRoundedIcon fontSize="small" />}
+                  >
+                    Stop
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    onClick={handleRunWorkflow}
+                    disabled={nodes.length === 0}
+                    startIcon={<PlayArrowRoundedIcon fontSize="small" />}
+                  >
+                    Run Workflow
+                  </Button>
+                )}
+              </Stack>
+            )}
+          </Stack>
 
           {currentPage === 'workflow' && (
-            <div className="flex items-center gap-3">
-              <Button
-                variant={isConnectionMode ? 'default' : 'outline'}
-                onClick={() => setIsConnectionMode(!isConnectionMode)}
-                disabled={isRunning || nodes.length < 2}
-                className="gap-2"
-              >
-                <Link2 className="w-4 h-4" />
-                {isConnectionMode ? 'Connecting...' : 'Add Connection'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleClearWorkflow}
-                disabled={isRunning || nodes.length === 0}
-              >
-                Clear Canvas
-              </Button>
-
-               <Button
-      onClick={handleStopWorkflow}   // create this handler
-      variant="outline"
-      disabled={isRunning || nodes.length === 0}
-    >
-      Save Workflow
-    </Button>
-              {isRunning ? (
-                <Button onClick={handleStopWorkflow} variant="destructive" className="gap-2">
-                  <Square className="w-4 h-4" />
-                  Stop
-                </Button>
-              ) : (
-                <Button onClick={handleRunWorkflow} disabled={nodes.length === 0} className="gap-2">
-                  <Play className="w-4 h-4" />
-                  Run Workflow
-                </Button>
-
-
-              
-              )}
-                             
-            </div>
-          )}
-        </div>
-
-        {currentPage === 'workflow' && (
-          <WorkflowTabs
-            workflows={workflows}
-            currentWorkflowId={currentWorkflowId}
-            onSelectWorkflow={setCurrentWorkflowId}
-            onCreateWorkflow={handleCreateWorkflow}
-            onRenameWorkflow={handleRenameWorkflow}
-            onDeleteWorkflow={handleDeleteWorkflow}
-            onDuplicateWorkflow={handleDuplicateWorkflow}
-          />
-        )}
-      </div>
-
-      {/* Main Content */}
-      {currentPage === 'workflow' ? (
-        <div className="flex-1 flex overflow-hidden">
-          <AgentSidebar
-            agents={availableAgents}
-            onAddNode={handleAddNode}
-            // No creation props here. Sidebar cannot create agents.
-          />
-          <div className="flex-1 overflow-hidden">
-            <WorkflowCanvas
-              nodes={nodes}
-              connections={connections}
-              agents={agents}
-              onUpdateNodePosition={handleUpdateNodePosition}
-              onConnect={handleConnect}
-              onDeleteNode={handleDeleteNode}
-              onDeleteConnection={handleDeleteConnection}
-              isConnectionMode={isConnectionMode}
-              onExitConnectionMode={() => setIsConnectionMode(false)}
+            <WorkflowTabs
+              workflows={workflows}
+              currentWorkflowId={currentWorkflowId}
+              onSelectWorkflow={setCurrentWorkflowId}
+              onCreateWorkflow={handleCreateWorkflow}
+              onRenameWorkflow={handleRenameWorkflow}
+              onDeleteWorkflow={handleDeleteWorkflow}
+              onDuplicateWorkflow={handleDuplicateWorkflow}
             />
-          </div>
-          <StreamingPanel messages={messages} nodes={nodes} agents={agents} connections={connections} />
-        </div>
-      ) : (
-        // Creation lives only here
-        <AgentLibraryPage agents={agents} onCreateAgent={handleCreateAgent} />
-      )}
-    </div>
+          )}
+        </Stack>
+      </Paper>
+
+      <Box flex={1} display="flex" overflow="hidden">
+        {currentPage === 'workflow' ? (
+          <>
+            <AgentSidebar agents={availableAgents} onAddNode={handleAddNode} />
+            <Box flex={1} overflow="hidden">
+              <WorkflowCanvas
+                nodes={nodes}
+                connections={connections}
+                agents={agents}
+                onUpdateNodePosition={handleUpdateNodePosition}
+                onConnect={handleConnect}
+                onDeleteNode={handleDeleteNode}
+                onDeleteConnection={handleDeleteConnection}
+                isConnectionMode={isConnectionMode}
+                onExitConnectionMode={() => setIsConnectionMode(false)}
+              />
+            </Box>
+            <StreamingPanel messages={messages} nodes={nodes} agents={agents} connections={connections} />
+          </>
+        ) : (
+          <Box flex={1} overflow="hidden">
+            <AgentLibraryPage agents={agents} onCreateAgent={handleCreateAgent} />
+          </Box>
+        )}
+      </Box>
+    </Box>
   );
 }
