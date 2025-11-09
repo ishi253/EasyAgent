@@ -1,11 +1,8 @@
 from __future__ import annotations
-
 from pathlib import Path
 import textwrap
 from typing import Any
-
-from jinja2 import BaseLoader, Environment as JinjaEnv
-
+from jinja2 import Environment as JinjaEnv, BaseLoader
 from .ir import IR, RuntimeEnv
 from .util import write_text
 
@@ -69,6 +66,23 @@ _toolset = GeneratedToolset()
 
 {% endfor %}
 
+class GeneratedToolset:
+    """Expose generated MCP tools as bound methods that can be iterated over."""
+    _tool_names = {{ tool_names }}
+
+    def __iter__(self):
+        for tool_name in self._tool_names:
+            yield getattr(self, tool_name)
+
+{% for t in tools %}
+{% if t.is_async %}    async def {{ t.name }}({{ t.method_params_str }}) -> {{ t.return_type }}:
+        return await {{ t.name }}({{ t.call_args_str }})
+{% else %}    def {{ t.name }}({{ t.method_params_str }}) -> {{ t.return_type }}:
+        return {{ t.name }}({{ t.call_args_str }})
+{% endif %}
+
+{% endfor %}
+
 if __name__ == "__main__":
     # stdio transport for agent runtimes
     mcp.run()
@@ -100,14 +114,12 @@ ALLOWED_IMPORTS = {
 # Helpers
 # ---------------------------------------------------------------------------
 
-
 def _indent(code: str, n: int = 4) -> str:
     pad = " " * n
     lines = code.rstrip("\n").splitlines() if code else []
     if not lines:
         return pad + "pass"
     return "\n".join(pad + ln for ln in lines)
-
 
 def _scan_security(code: str, env: RuntimeEnv) -> None:
     for bad in FORBIDDEN_FRAGMENTS:
@@ -116,11 +128,9 @@ def _scan_security(code: str, env: RuntimeEnv) -> None:
     if not env.network_access and ("httpx" in code or "requests" in code):
         raise ValueError("Network access disabled but HTTP client found in implementation")
 
-
 # ---------------------------------------------------------------------------
 # Codegen
 # ---------------------------------------------------------------------------
-
 
 def generate(ir: IR, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -172,6 +182,10 @@ def generate(ir: IR, out_dir: Path) -> None:
         call_args = ", ".join(call_args_parts)
         call_expr = f"_toolset.{tool.name}({call_args})" if call_args else f"_toolset.{tool.name}()"
 
+        call_args_str = ", ".join(p.name for p, _ in ordered_params)
+        method_params_parts = ["self"]
+        method_params_parts.extend(params_parts)
+
         tools_ctx.append({
             "name": tool.name,
             "description": tool.description,
@@ -181,6 +195,8 @@ def generate(ir: IR, out_dir: Path) -> None:
             "body_indented_method": body_indented_method,
             "call_expr": call_expr,
             "is_async": getattr(tool, "is_async", False),
+            "method_params_str": ", ".join(method_params_parts),
+            "call_args_str": call_args_str,
         })
 
     env = JinjaEnv(loader=BaseLoader(), autoescape=False, trim_blocks=True, lstrip_blocks=True)
@@ -189,9 +205,9 @@ def generate(ir: IR, out_dir: Path) -> None:
         server_name=ir.server_name,
         description=ir.description,
         tools=tools_ctx,
-        tool_names=tool_names,
         imports=imports,
         environment=ir.environment,
+        tool_names=tuple(tool.name for tool in ir.tools),
     )
     reqs_txt = env.from_string(REQUIREMENTS_TEMPLATE).render(dependencies=ir.dependencies)
 
