@@ -17,9 +17,9 @@ from typing import List, Optional
 from dedalus_labs import AsyncDedalus, DedalusRunner
 from dotenv import load_dotenv
 
-from backend.mcpgen.codegen import generate
-from backend.mcpgen.planner import plan as _plan
-from backend.mcpgen.planner import plan as plan_async
+from src.backend.mcpgen.codegen import generate
+from src.backend.mcpgen.planner import plan as _plan
+from src.backend.mcpgen.planner import plan as plan_async
 
 # from dedalus_labs.utils.stream import stream_async
 
