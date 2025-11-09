@@ -36,6 +36,7 @@ Our core idea: **“If you can describe it, you can deploy it.”**
 
 EasyAgent's architecture is designed for speed and scalability. A React frontend communicates with a Node.js API, which manages agent creation. Workflow execution is handled by a Red Panda streaming hub that orchestrates data flow between containerized agents.
 
+```bash 
 graph LR
     %% Design Time
     A[Browser UI (React)] --> B[API Server (Node.js)]
@@ -63,7 +64,7 @@ graph LR
     L --> N
     N --> O[External Tools / APIs / DBs]
 
-
+```
 
 
 
