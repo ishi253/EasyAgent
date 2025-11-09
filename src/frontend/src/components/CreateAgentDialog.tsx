@@ -36,8 +36,8 @@ export function CreateAgentDialog({ open, onOpenChange, onCreateAgent }: CreateA
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    const newAgentObject = {
+ 
+    const newAgentObject = { //FETCH DATA TO BACKEND API
     name: formData.name.trim(),
     description: formData.description.trim(),
     prompt: formData.prompt.trim(),
