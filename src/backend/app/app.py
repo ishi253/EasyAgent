@@ -12,7 +12,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, Field
 from pymongo import ReturnDocument
 
-from agents.agent import Agent as AgentConfig
+from backend.agents.agent import Agent as AgentConfig
 from backend.app.db import agents_collection_for_user, close_client, get_users_collection
 
 
@@ -223,6 +223,7 @@ async def create_agent(agent_in: AgentCreate, current_user: User = Depends(get_c
         tools=agent_in.tools,
         name=agent_in.name,
         needMCP=agent_in.need_mcp,
+        tool_request="dummyString"
     )
     now = datetime.utcnow()
     document = {

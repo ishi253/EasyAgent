@@ -27,7 +27,7 @@ async def run_agent(agent: Agent):
 
 
 def createMCP(spec: str):
-    return []
+    return [str]
 
 @dataclass
 class Agent:
