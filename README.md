@@ -29,45 +29,7 @@ Our core idea: **“If you can describe it, you can deploy it.”**
 * **🔒 Smart Data Streaming**: Links a knowledge hub across all agents ??????????
 * **🚀 Parallel Execution**: Our orchestrator analyzes the workflow graph to run independent agents concurrently, dramatically speeding up results.
 
----
-
-## 🧩 Architecture
-
-```mermaid
-graph TB
-    subgraph "Design Time (Web App)"
-        A[Browser UI (React)] <--> B[API Server (Node.js)]
-        C[Text Input] --> D[Claude LLM]
-        D --> E[MCP Blueprint]
-        E --> F[SQLite Database]
-        B --> F
-        A --> G[Workflow Canvas]
-    end
-
-    subgraph "Runtime (Execution)"
-        G -- "Run Workflow" --> H[Execution Planner]
-        H -- "Optimized Graph" --> I[Red Panda (Orchestrator & Data Hub)]
-        
-        I -- "Data Topic" --> J[Agent 1]
-        I -- "Data Topic" --> K[Agent 2]
-        I -- "Data Topic" --> L[Agent 3]
-
-        J -- "Output" --> I
-        K -- "Output" --> I
-        L -- "Output" --> I
-        
-        I -- "Logs/Results" --> A
-    end
-
-    subgraph "Agent Services"
-        J <--> M[MCP Server]
-        K <--> M
-        L <--> M
-        M -- "Allocates" --> N[Tools: APIs, DBs, etc.]
-    end
-
-```
-
+----
 
 ### 🛠️ Tech Stack
 
