@@ -1,2 +1,4 @@
+.gitignore
 .env
 /src/backend/data/
+tests
