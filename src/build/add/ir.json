@@ -1,0 +1,129 @@
+{
+  "server_name": "fibonacci-calculator",
+  "description": "A collection of Fibonacci sequence calculation tools",
+  "tools": [
+    {
+      "name": "calculate_fibonacci",
+      "description": "Calculate the nth Fibonacci number (0-indexed)",
+      "parameters": [
+        {
+          "name": "n",
+          "type": "int",
+          "description": "The index of the Fibonacci number to calculate (0-indexed)",
+          "default": null
+        }
+      ],
+      "return_type": "int",
+      "implementation": "    if n < 0:\n        raise ValueError(\"Index must be non-negative\")\n    if n == 0:\n        return 0\n    if n == 1:\n        return 1\n    a, b = 0, 1\n    for _ in range(2, n + 1):\n        a, b = b, a + b\n    return b",
+      "is_async": false
+    },
+    {
+      "name": "fibonacci_sequence",
+      "description": "Generate a list of Fibonacci numbers up to the nth term",
+      "parameters": [
+        {
+          "name": "count",
+          "type": "int",
+          "description": "Number of Fibonacci numbers to generate",
+          "default": null
+        }
+      ],
+      "return_type": "List[int]",
+      "implementation": "    if count <= 0:\n        return []\n    if count == 1:\n        return [0]\n    sequence = [0, 1]\n    for _ in range(2, count):\n        sequence.append(sequence[-1] + sequence[-2])\n    return sequence",
+      "is_async": false
+    },
+    {
+      "name": "is_fibonacci_number",
+      "description": "Check if a given number is in the Fibonacci sequence",
+      "parameters": [
+        {
+          "name": "num",
+          "type": "int",
+          "description": "The number to check",
+          "default": null
+        }
+      ],
+      "return_type": "bool",
+      "implementation": "    import math\n    if num < 0:\n        return False\n    def is_perfect_square(n):\n        root = int(math.sqrt(n))\n        return root * root == n\n    return is_perfect_square(5 * num * num + 4) or is_perfect_square(5 * num * num - 4)",
+      "is_async": false
+    },
+    {
+      "name": "fibonacci_sum",
+      "description": "Calculate the sum of the first n Fibonacci numbers",
+      "parameters": [
+        {
+          "name": "n",
+          "type": "int",
+          "description": "Number of Fibonacci numbers to sum",
+          "default": null
+        }
+      ],
+      "return_type": "int",
+      "implementation": "    if n <= 0:\n        return 0\n    total = 0\n    a, b = 0, 1\n    total = a\n    if n == 1:\n        return total\n    total += b\n    for _ in range(2, n):\n        a, b = b, a + b\n        total += b\n    return total",
+      "is_async": false
+    }
+  ],
+  "dependencies": [],
+  "environment": {
+    "workdir_required": false,
+    "network_access": false
+  },
+  "tests": [
+    {
+      "tool": "calculate_fibonacci",
+      "args": {
+        "n": 0
+      },
+      "expected_result": 0,
+      "assertion": "equals"
+    },
+    {
+      "tool": "calculate_fibonacci",
+      "args": {
+        "n": 10
+      },
+      "expected_result": 55,
+      "assertion": "equals"
+    },
+    {
+      "tool": "fibonacci_sequence",
+      "args": {
+        "count": 7
+      },
+      "expected_result": [
+        0,
+        1,
+        1,
+        2,
+        3,
+        5,
+        8
+      ],
+      "assertion": "equals"
+    },
+    {
+      "tool": "is_fibonacci_number",
+      "args": {
+        "num": 21
+      },
+      "expected_result": true,
+      "assertion": "equals"
+    },
+    {
+      "tool": "is_fibonacci_number",
+      "args": {
+        "num": 22
+      },
+      "expected_result": false,
+      "assertion": "equals"
+    },
+    {
+      "tool": "fibonacci_sum",
+      "args": {
+        "n": 5
+      },
+      "expected_result": 7,
+      "assertion": "equals"
+    }
+  ]
+}
