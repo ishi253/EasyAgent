@@ -18,7 +18,7 @@ app.add_middleware(
 
 class WorkflowStruct(BaseModel):
     workflow: str
-    nodes: List[str]
+    nodes: List[str] # AgentID-count
     edges: List[Tuple[str, str]]
 
 
@@ -29,6 +29,9 @@ async def root(workflow: WorkflowStruct):
 
     processed_nodes = [{"id": node_id, "status": "received"} for node_id in workflow.nodes]
 
+    # TODO call function
+    # Edge set looks like : [(agentID, agentID),...]
+    # Need: List of nodes, list of edges, max parallelism (iterate through source verticies and count)
     return {
         "message": "Workflow received!!!",
         "workflowId": workflow.workflow,
@@ -36,3 +39,7 @@ async def root(workflow: WorkflowStruct):
         "edgeCount": len(workflow.edges),
         "nodes": processed_nodes,
     }
+
+
+# Create Agent
+# Prompt, list of avaiable tools, name of agent, bool do we need more MCP, tool requirements, SOP

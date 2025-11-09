@@ -6,8 +6,9 @@ import { WorkflowTabs } from './components/WorkflowTabs';
 import { Button } from './components/ui/button';
 import { Play, Square, Link2 } from 'lucide-react'; // Added icons
 import { CreateAgentDialog } from './components/CreateAgentDialog';
-import { AgentLibraryPage } from './components/AgentLibraryPage';
+import { AgentLibraryPage } from './AgentLibraryPage';
 
+const baseEnv = "http://127.0.0.1:8000"
 export interface Agent {
   id: string;
   name: string;
@@ -258,7 +259,7 @@ export default function App() {
 
     const payload = {
       workflow: workflowId,
-      nodes: nodesList,
+      nodes: nodesList,   
       edges: edgesList,
     }; //THIS IS WHAT GETS SENT TO BACKEND**
     
@@ -287,6 +288,24 @@ export default function App() {
     const workflowData = getFormattedWorkflowData();
     console.log("Workflow data to send:", workflowData);
     // You can now send this `workflowData` object to your backend here.
+    if (!workflowData) return;
+    try {
+      const response = await fetch(`${baseEnv}/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(workflowData),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Backend error ${response.status}: ${errorBody}`);
+      }
+
+      const data = await response.json();
+      console.log("Backend response:", data);
+    } catch (error) {
+      console.error("Failed to send workflow to backend:", error);
+    }
     // -------------
 
     if (nodes.length === 0 || connections.length === 0) return;
