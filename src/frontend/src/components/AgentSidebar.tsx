@@ -1,17 +1,15 @@
 import { Agent } from '../App';
-import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
-import { Plus, Search, Sparkles } from 'lucide-react';
+import { Search, Sparkles, Plus } from 'lucide-react'; // Plus stays only as an icon in cards
 import { useState } from 'react';
 
 interface AgentSidebarProps {
   agents: Agent[];
   onAddNode: (agentId: string) => void;
-  onCreateAgent: () => void;
 }
 
-export function AgentSidebar({ agents, onAddNode, onCreateAgent }: AgentSidebarProps) {
+export function AgentSidebar({ agents, onAddNode }: AgentSidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredAgents = agents.filter(agent =>
@@ -24,13 +22,10 @@ export function AgentSidebar({ agents, onAddNode, onCreateAgent }: AgentSidebarP
       <div className="p-4 border-b border-slate-200">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-slate-900">Agent Library</h3>
-          <Button size="sm" onClick={onCreateAgent} className="gap-1">
-            <Plus className="w-4 h-4" />
-            New
-          </Button>
+          {/* removed New button */}
         </div>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <Input
             type="text"
             placeholder="Search agents..."
@@ -66,12 +61,8 @@ export function AgentSidebar({ agents, onAddNode, onCreateAgent }: AgentSidebarP
       </div>
 
       <div className="p-4 border-t border-slate-200 bg-slate-50">
-        <p className="text-slate-600 mb-2">
-          💡 Click an agent to add it to the canvas
-        </p>
-        <p className="text-slate-500">
-          Connect agents to create data streaming workflows
-        </p>
+        <p className="text-slate-600 mb-2">💡 Click an agent to add it to the canvas</p>
+        <p className="text-slate-500">Connect agents to create data streaming workflows</p>
       </div>
     </div>
   );
