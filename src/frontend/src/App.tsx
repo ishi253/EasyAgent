@@ -5,7 +5,7 @@ import { StreamingPanel } from './components/StreamingPanel';
 import { WorkflowTabs } from './components/WorkflowTabs';
 import { Button } from './components/ui/button';
 import { Play, Square, Link2 } from 'lucide-react';
-import { AgentLibraryPage } from './AgentLibraryPage';
+import { AgentLibraryPage } from './components/AgentLibraryPage';
 
 // --- INTERFACES ---
 export interface Agent {
