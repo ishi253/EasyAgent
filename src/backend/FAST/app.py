@@ -1,10 +1,13 @@
+import asyncio
+import json
 from typing import List, Tuple
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from backend.agents.agent import createAgent
-
+from src.backend.agents.agent import createAgent
+from src.backend.TextProcessing.call_llm import execute as generate_agent_prompt
+from src.backend.FAST.db import list_agents as getAllAgents
 app = FastAPI()
 
 # Allow the frontend dev server to call this API from a different origin.
@@ -29,7 +32,7 @@ class AgentCreateRequest(BaseModel):
     category: str
 
 
-@app.post("/")
+@app.post("/workflow")
 async def root(workflow: WorkflowStruct):
     if not workflow.nodes:
         raise HTTPException(status_code=400, detail="Workflow must include at least one node.")
@@ -61,9 +64,20 @@ async def create_agent(agent: AgentCreateRequest):
         raise HTTPException(status_code=400, detail="Agent name cannot be empty.")
     if not cleaned_prompt:
         raise HTTPException(status_code=400, detail="Agent prompt cannot be empty.")
+
+    try:
+        llm_output = await asyncio.to_thread(generate_agent_prompt, cleaned_prompt)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to generate prompt: {exc}") from exc
+    # @TODO check the cached stuff
+    try:
+        prompt_payload = json.loads(llm_output)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=500, detail=f"LLM returned invalid JSON: {exc}") from exc
+
     try:
         created_agent = createAgent(
-            prompt=cleaned_prompt,
+            prompt=prompt_payload['responsibilities'],
             tools=[],
             name=cleaned_name,
             needMCP=False,
@@ -82,3 +96,7 @@ async def create_agent(agent: AgentCreateRequest):
             "category": cleaned_category,
         },
     }
+
+@app.get("/database")
+async def getDatabases():
+    return getAllAgents()

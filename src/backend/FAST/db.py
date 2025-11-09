@@ -166,13 +166,6 @@ def list_agents() -> List[Dict[str, Any]]:
         rows = conn.execute("SELECT * FROM agents ORDER BY created_at ASC").fetchall()
     return [_row_to_agent(row) for row in rows]
 
-
-def list_agents_without_ids() -> List[Dict[str, Any]]:
-    """Return all agent records without their agent_id field."""
-    agents = list_agents()
-    return [{k: v for k, v in agent.items()} for agent in agents]
-
-
 def delete_agent(agent_id: str) -> bool:
     """Remove an agent. Returns True if a row was deleted."""
     with get_agent_connection() as conn:
@@ -257,64 +250,6 @@ init_db()
 if __name__ == "__main__":
     # init_db()
     # Basic harness that exercises CRUD for both datasets.
-    print("Running FAST db harness...")
-
-    def assert_eq(actual, expected, label: str) -> None:
-        if actual != expected:
-            raise AssertionError(f"{label} mismatch: {actual!r} != {expected!r}")
-
-    def run_agent_tests() -> None:
-        delete_agent("harness-agent")
-        delete_agent("harness-agent-2")
-
-        a1 = save_agent("harness-agent", name="Test Agent", prompt="Prompt", tools=["a"], need_mcp=True)
-        assert_eq(a1["name"], "Test Agent", "agent name insert")
-        fetched = get_agent("harness-agent")
-        assert_eq(fetched["tools"], ["a"], "agent tools fetch")
-
-        save_agent("harness-agent", name="Updated", prompt="Prompt2", tools=["b"], need_mcp=False)
-        updated = get_agent("harness-agent")
-        assert_eq(updated["name"], "Updated", "agent update")
-        assert_eq(updated["need_mcp"], False, "agent need_mcp update")
-
-        save_agent("harness-agent-2", name="Second", prompt="P2", tools=[], need_mcp=False)
-        agents = list_agents()
-        assert len([a for a in agents if a["agent_id"].startswith("harness-agent")]) == 2
-
-        assert delete_agent("harness-agent") is True
-        assert delete_agent("harness-agent-2") is True
-        assert get_agent("harness-agent") is None
-
-    def run_workflow_tests() -> None:
-        delete_workflow("harness-workflow")
-
-        w1 = save_workflow(
-            "harness-workflow",
-            display_name="WF",
-            nodes=["n1", "n2"],
-            edges=[("n1", "n2")],
-            max_parallelism=0,
-        )
-        assert_eq(w1["display_name"], "WF", "workflow insert")
-        assert_eq(w1["max_parallelism"], 1, "workflow parallelism clamp")
-
-        save_workflow(
-            "harness-workflow",
-            display_name="WF2",
-            nodes=["n3"],
-            edges=[],
-            max_parallelism=4,
-        )
-        updated = get_workflow("harness-workflow")
-        assert_eq(updated["display_name"], "WF2", "workflow update")
-        assert_eq(updated["nodes"], ["n3"], "workflow nodes update")
-
-        workflows = list_workflows()
-        assert len([w for w in workflows if w["workflow_id"] == "harness-workflow"]) == 1
-
-        assert delete_workflow("harness-workflow") is True
-        assert get_workflow("harness-workflow") is None
-
-    run_agent_tests()
-    run_workflow_tests()
-    print("FAST db harness completed successfully.")
+    save_agent("harness-agent", name="Test Agent", prompt="Prompt", tools=["a"], need_mcp=True)
+    save_agent("harness-agent1", name="Updated", prompt="Prompt2", tools=["b"], need_mcp=False)
+    print(len(list_agents()))

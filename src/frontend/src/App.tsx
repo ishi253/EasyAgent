@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { WorkflowCanvas } from './components/WorkflowCanvas';
 import { AgentSidebar } from './components/AgentSidebar';
 import { StreamingPanel } from './components/StreamingPanel';
@@ -52,43 +52,89 @@ export interface Workflow {
   updatedAt: string;
 }
 
+const FALLBACK_AGENTS: Agent[] = [
+  {
+    id: '1',
+    name: 'Research Agent',
+    description: 'Gathers and analyzes information',
+    prompt:
+      'You are a research specialist. Analyze the input and extract key insights, facts, and relevant information. Present findings in a structured format.',
+    category: 'Research'
+  },
+  {
+    id: '5',
+    name: 'Data Analyst Agent',
+    description: 'Analyzes datasets to find trends and insights.',
+    prompt:
+      'You are a data analyst. Given a dataset (CSV or JSON), perform statistical analysis, identify key trends, and return a summary of your findings.',
+    category: 'Data'
+  },
+  {
+    id: '6',
+    name: 'Task Prioritizer',
+    description: 'Organizes a list of tasks based on priority.',
+    prompt:
+      'You are an expert project manager. Take the following list of tasks and organize them by priority (high, medium, low) and logical order of completion. Return the prioritized list.',
+    category: 'Planning'
+  },
+  {
+    id: '4',
+    name: 'Code Generator',
+    description: 'Generates code from specifications',
+    prompt:
+      'You are a senior software engineer. Convert specifications and requirements into clean, well-documented code following best practices.',
+    category: 'Development'
+  },
+];
+
 // --- MAIN APP COMPONENT ---
 export default function App() {
   // Agents state lives here. Creation happens only via AgentLibraryPage.
-  const [agents, setAgents] = useState<Agent[]>([
-    {
-      id: '1',
-      name: 'Research Agent',
-      description: 'Gathers and analyzes information',
-      prompt:
-        'You are a research specialist. Analyze the input and extract key insights, facts, and relevant information. Present findings in a structured format.',
-      category: 'Research'
-    },
-    {
-      id: '5',
-      name: 'Data Analyst Agent',
-      description: 'Analyzes datasets to find trends and insights.',
-      prompt:
-        'You are a data analyst. Given a dataset (CSV or JSON), perform statistical analysis, identify key trends, and return a summary of your findings.',
-      category: 'Data'
-    },
-    {
-      id: '6',
-      name: 'Task Prioritizer',
-      description: 'Organizes a list of tasks based on priority.',
-      prompt:
-        'You are an expert project manager. Take the following list of tasks and organize them by priority (high, medium, low) and logical order of completion. Return the prioritized list.',
-      category: 'Planning'
-    },
-    {
-      id: '4',
-      name: 'Code Generator',
-      description: 'Generates code from specifications',
-      prompt:
-        'You are a senior software engineer. Convert specifications and requirements into clean, well-documented code following best practices.',
-      category: 'Development'
-    },
-  ]);
+  const [agents, setAgents] = useState<Agent[]>(FALLBACK_AGENTS);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const normalizeAgentRecord = (record: any, index: number): Agent => {
+      const rawPrompt = record?.prompt ?? '';
+      const normalizedPrompt =
+        typeof rawPrompt === 'string' ? rawPrompt : JSON.stringify(rawPrompt ?? {}, null, 2);
+
+      return {
+        id: String(record?.agent_id ?? record?.id ?? `agent-${index}`),
+        name: record?.name ?? `Agent ${index + 1}`,
+        description: record?.description ?? 'No description provided.',
+        prompt: normalizedPrompt || 'Prompt unavailable.',
+        category: record?.category ?? 'General',
+      };
+    };
+
+    const fetchAgents = async () => {
+      try {
+        const response = await fetch(`${baseEnv}/database`);
+        if (!response.ok) {
+          const errorBody = await response.text();
+          throw new Error(`Backend error ${response.status}: ${errorBody}`);
+        }
+        const data = await response.json();
+
+        if (Array.isArray(data) && isMounted) {
+          const normalized = data.map((record, index) => normalizeAgentRecord(record, index));
+          setAgents(normalized.length ? normalized : FALLBACK_AGENTS);
+        }
+      } catch (error) {
+        console.error("Failed to load agents from database:", error);
+        if (isMounted) {
+          setAgents(FALLBACK_AGENTS);
+        }
+      }
+    };
+
+    fetchAgents();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const [workflows, setWorkflows] = useState<Workflow[]>([
     {
@@ -262,7 +308,7 @@ export default function App() {
     // You can now send this `workflowData` object to your backend here.
     if (!workflowData) return;
     try {
-      const response = await fetch(`${baseEnv}/`, {
+      const response = await fetch(`${baseEnv}/workflow`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(workflowData),
