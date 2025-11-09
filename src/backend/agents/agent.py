@@ -11,7 +11,7 @@ async def run_agent(agent: Agent):
     load_dotenv()
 
     if agent.needMCP:
-        agent.tools.extend(createMCP(agent))
+        agent.tools.extend(createMCP(tool_request)) # type: ignore
 
     client = AsyncDedalus()
     runner = DedalusRunner(client)
@@ -26,9 +26,8 @@ async def run_agent(agent: Agent):
     return result.final_output
 
 
-def createMCP(agent: "Agent"):
-    # TODO: implement MCP creation logic
-    return []
+def createMCP(spec: str):
+    return [str]
 
 @dataclass
 class Agent:
@@ -36,3 +35,4 @@ class Agent:
     tools: List[str]
     name: str
     needMCP: bool
+    tool_request: str
