@@ -1,13 +1,29 @@
 # demo_stream_dag.py
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-import subprocess
-import sys
 import os, json, time, threading, uuid
 from collections import defaultdict
 from typing import List, Tuple
 from kafka import KafkaConsumer, KafkaProducer
+import subprocess, sys
 import queue
+import asyncio
+from backend.agents.agent import run_agent as run_agent_async
+
+def _run_coroutine_sync(factory):
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(factory())
+    result, err = {}, []
+    def _runner():
+        try:
+            result["v"] = asyncio.run(factory())
+        except BaseException as e:
+            err.append(e)
+    t = threading.Thread(target=_runner, daemon=True)
+    t.start(); t.join()
+    if err:
+        raise err[0]
+    return result["v"]
 
 # ---------- Config ----------
 DEFAULT_BROKERS = os.getenv("REDPANDA_BROKERS", "localhost:19092")
@@ -15,34 +31,35 @@ TASKS_TOPIC = os.getenv("WF_TASKS_TOPIC", "wf.tasks")
 EVENTS_TOPIC = os.getenv("WF_EVENTS_TOPIC", "wf.events")
 
 # ---------- Black-box agent (replace with your real one) ----------
-def run_agent(agent_id: int):
-    # 1) Decide output path (default: ~/Downloads, override with DOWNLOAD_DIR env)
+def run_agent(agent_id):
+    """Thin adapter that calls your real async agent.run_agent inside."""
+    # 1) call your real async agent
+    output_text = _run_coroutine_sync(lambda: run_agent_async(str(agent_id), ""))
+
+    # 2) write its output to a file so the orchestrator still gets a URI/path
     downloads = os.path.expanduser(os.getenv("DOWNLOAD_DIR", "~/Downloads"))
     os.makedirs(downloads, exist_ok=True)
-    out_path = os.path.abspath(os.path.join(downloads, f"agent_{agent_id}.pdf"))
+    out_path = os.path.join(downloads, f"agent_{agent_id}_{uuid.uuid4().hex[:6]}.txt")
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(output_text or "")
 
-    # 2) Make a tiny PDF
-    c = canvas.Canvas(out_path, pagesize=letter)
-    c.setTitle(f"Agent {agent_id} Output")
-    c.drawString(72, 720, f"Hello from agent {agent_id}!")
-    c.drawString(72, 700, time.strftime("Generated at %Y-%m-%d %H:%M:%S"))
-    c.showPage()
-    c.save()
-
-    # 3) Auto-open the file (best-effort; won’t crash the worker if it fails)
+    # 3) optional: auto-open
     try:
-        if sys.platform.startswith("darwin"):      # macOS
+        if sys.platform.startswith("darwin"):
             subprocess.run(["open", out_path], check=False)
-        elif os.name == "nt":                      # Windows
+        elif os.name == "nt":
             os.startfile(out_path)  # type: ignore[attr-defined]
-        else:                                      # Linux / others
+        else:
             subprocess.run(["xdg-open", out_path], check=False)
-    except Exception as _:
+    except Exception:
         pass
 
-    # 4) Return a simple record (your orchestrator already passes this back)
-    return {"uri": f"file://{out_path}", "path": out_path, "summary": f"downloaded_pdf_{agent_id}"}
-
+    # 4) return the same shape your workflow expects
+    return {
+        "uri": f"file://{os.path.abspath(out_path)}",
+        "path": os.path.abspath(out_path),
+        "summary": f"agent_{agent_id}_output"
+    }
 # ---------- Worker thread ----------
 def worker_loop(brokers: str, group: str, stop_evt: threading.Event):
     producer = KafkaProducer(
@@ -104,8 +121,8 @@ def worker_loop(brokers: str, group: str, stop_evt: threading.Event):
 # ---------- Orchestrator (single thread for this run) ----------
 def orchestrator_loop(
     run_id: str,
-    nodes: List[int],
-    edges: List[Tuple[int,int]],
+    nodes: List[str],
+    edges: List[Tuple[str,str]],
     brokers: str,
     stop_evt: threading.Event,
     results_q:"queue.Queue"
@@ -138,7 +155,7 @@ def orchestrator_loop(
     total = len(nodes)
     done_count = 0
 
-    def send_task(node_id: int, agent_id: int, parents=None, inputs=None):
+    def send_task(node_id: str, agent_id: str, parents=None, inputs=None):
         key = f"{run_id}|{node_id}"
         payload = {
             "run_id": run_id,
@@ -205,8 +222,8 @@ def orchestrator_loop(
 
 # ---------- Single public function ----------
 def run_stream_demo(
-    nodes: List[int],
-    edges: List[Tuple[int,int]],
+    nodes: List[str],
+    edges: List[Tuple[str,str]],
     *,
     brokers: str = DEFAULT_BROKERS,
     num_workers: int = 2,
@@ -247,4 +264,6 @@ def run_stream_demo(
 # ---------- Example usage ----------
 if __name__ == "__main__":
     # Example DAG: 1 & 2 -> 3 -> 4
-    run_stream_demo([1,2,3,4,5,6], [(1,3),(2,3),(3,4),(3,5),(4, 6), (5, 6)], num_workers=2)
+    nodes = ["1_1", "1_2", "2_1", "3_1"]
+    edges = [("1_1", "2_1"), ("1_2", "2_1"), ("2_1", "3_1")]
+    run_stream_demo(nodes, edges, num_workers=2)

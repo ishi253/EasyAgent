@@ -13,9 +13,9 @@ from typing import Awaitable, Callable, List, Tuple, TypeVar
 from dedalus_labs import AsyncDedalus, DedalusRunner
 from dotenv import load_dotenv
 
-from backend.FAST.db import get_agent as get_agent_record, save_agent as save_agent_record
-from backend.mcpgen.codegen import generate
-from backend.mcpgen.planner import plan as _plan
+from src.backend.FAST.db import get_agent as get_agent_record, save_agent as save_agent_record
+from src.backend.mcpgen.codegen import generate
+from src.backend.mcpgen.planner import plan as _plan
 
 T = TypeVar("T")
 

@@ -324,6 +324,6 @@ init_db()
 if __name__ == "__main__":
     # init_db()
     # Basic harness that exercises CRUD for both datasets.
-    save_agent("harness-agent", name="Test Agent", prompt="Prompt", tools=["a"], need_mcp=True)
-    save_agent("harness-agent1", name="Updated", prompt="Prompt2", tools=["b"], need_mcp=False)
-    print(len(list_agents()))
+    # save_agent("harness-agent", name="Test Agent", prompt="Prompt", tools=["a"], need_mcp=True)
+    # save_agent("harness-agent1", name="Updated", prompt="Prompt2", tools=["b"], need_mcp=False)
+    print(list_agents())
