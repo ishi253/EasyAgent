@@ -1,5 +1,4 @@
 # docker-compose.yml
-version: "3.8"
 services:
   redpanda:
     image: docker.redpanda.com/redpandadata/redpanda:latest
@@ -13,11 +12,11 @@ services:
       - --kafka-addr
       - PLAINTEXT://0.0.0.0:9092,OUTSIDE://0.0.0.0:19092
       - --advertise-kafka-addr
-      - PLAINTEXT://redpanda:9092,OUTSIDE://${HOST_IP}:19092   # ← your LAN IP here
+      - PLAINTEXT://redpanda:9092,OUTSIDE://${HOST_IP}:19092
     environment:
       HOST_IP: ${HOST_IP}
     ports:
-      - "9092:9092"     # for clients inside Docker network
-      - "19092:19092"   # for clients on your LAN
-      - "9644:9644"     # admin API (optional)
+      - "9092:9092"     # docker-network clients
+      - "19092:19092"   # LAN clients
+      - "9644:9644"     # admin API
     restart: unless-stopped
