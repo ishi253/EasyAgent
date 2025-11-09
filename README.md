@@ -26,10 +26,66 @@ Our core idea: **“If you can describe it, you can deploy it.”**
 * **🔗 Drag-and-Drop Workflow Builder**: Visually chain multiple agents and tools into any cusrtomizable flow in any order.
 * **⚡ Hot-Reload Local Dev Server**: A complete React/Vite-based UI for building and local testing.
 * **🧰 MCP & Native Tool Support**: Designed to use **Model Context Protocol (MCP)** to link popular tools (e.g., web scraping, APIs, web search) with unique, native tool requests (e.g. Google Sheets, macros, formulas, etc).
-* **🔒 Smart Data Streaming**: Links a knowledge hub across all agents ??????????
+* **🔒 Smart Data Streaming**: Workflows are orchestrated by **Red Panda**, acting as a high-speed shared data knowledge hub that streams data to agents as needed.
 * **🚀 Parallel Execution**: Our orchestrator analyzes the workflow graph to run independent agents concurrently, dramatically speeding up results.
 
 ----
+
+# 🧠 EasyAgent - Visual AI Workflow Builder
+
+![License](https://img.shields.io/badge/License-MIT-blue) ![Status](https://img.shields.io/badge/Status-In%20Development-green) ![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen)
+
+**EasyAgent** is a framework that turns natural language descriptions into executable AI agents. It features a no-code, visual studio for connecting these agents into complex, parallelized workflows powered by a real-time streaming hub.
+
+## ✨ Key Features
+
+-   **📝 Natural Language Creation**: Use **Claude** to parse plain text instructions into a formal **MCP (Model Context Protocol)** agent blueprint.
+-   **🔗 Visual Workflow Builder**: A drag-and-drop React canvas to chain agents. The visual graph is translated into an optimized execution queue.
+-   **⚡ Real-Time Streaming**: Workflows are orchestrated by **Red Panda**, acting as a high-speed data hub that streams data to agents as needed.
+-   **🚀 Parallel Execution**: Our orchestrator analyzes the workflow graph to run independent agents concurrently, dramatically speeding up results.
+-   **🧰 Centralized Agent Library**: All created agents are saved to a **SQLite** database, making them reusable across unlimited workflows.
+-   **🧾 Full Execution Logs**: Monitor the real-time flow of data and logs from every agent in the streaming pipeline.
+
+## 🏗️ Architecture
+
+EasyAgent's architecture is designed for speed and scalability. A React frontend communicates with a Node.js API, which manages agent creation. Workflow execution is handled by a Red Panda streaming hub that orchestrates data flow between containerized agents.
+
+```mermaid
+graph TB
+    subgraph "Design Time (Web App)"
+        A[Browser UI (React)] <--> B[API Server (Node.js)]
+        C[Text Input] --> D[Claude LLM]
+        D --> E[MCP Blueprint]
+        E --> F[SQLite Database]
+        B --> F
+        A --> G[Workflow Canvas]
+    end
+
+    subgraph "Runtime (Execution)"
+        G -- "Run Workflow" --> H[Execution Planner]
+        H -- "Optimized Graph" --> I[Red Panda (Orchestrator & Data Hub)]
+        
+        I -- "Data Topic" --> J[Agent 1]
+        I -- "Data Topic" --> K[Agent 2]
+        I -- "Data Topic" --> L[Agent 3]
+
+        J -- "Output" --> I
+        K -- "Output" --> I
+        L -- "Output" --> I
+        
+        I -- "Logs/Results" --> A
+    end
+
+    subgraph "Agent Services"
+        J <--> M[MCP Server]
+        K <--> M
+        L <--> M
+        M -- "Allocates" --> N[Tools: APIs, DBs, etc.]
+    end
+
+```
+
+
 
 ### 🛠️ Tech Stack
 
