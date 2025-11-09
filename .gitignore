@@ -1,4 +1,6 @@
 .gitignore
 .env
 /src/backend/data/
-tests
+/src/frontend/node_modules/
+/src/backend/TextProcessing/__pycache__/
+/src/backend/app/__pycache__/
