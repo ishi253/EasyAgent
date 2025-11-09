@@ -135,17 +135,42 @@ def load_env_value_from_file(key: str, start_dir: pathlib.Path) -> str | None:
                 return value
     return None
 
-def execute(user_prompt:str, model=MODEL, max_tokens=1500) -> str:
-    import logging
 
-    logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s - %(message)s",
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Call Claude with MCP templates and a user prompt.",
     )
+    parser.add_argument(
+        "user_prompt",
+        help="Description of the desired MCP/task to tailor the prompts.",
+    )
+    parser.add_argument(
+        "--model",
+        default=MODEL,
+        help=f"Claude model id (default: {MODEL})",
+    )
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=1500,
+        help="Maximum tokens for Claude response (default: 1500).",
+    )
+    parser.add_argument(
+        "-t",
+        "--test-output",
+        nargs="?",
+        const=str(DEFAULT_TEST_OUTPUT),
+        metavar="FILE",
+        help=(
+            "When set, write Claude's response to FILE for testing "
+            "(default: tests/claude_response.txt)."
+        ),
+    )
+    return parser.parse_args()
 
-    logger = logging.getLogger(__name__)
 
-
+def main() -> None:
+    args = parse_args()
     script_dir = pathlib.Path(__file__).resolve().parent
 
     api_key = os.environ.get(ENV_KEY)
@@ -158,21 +183,25 @@ def execute(user_prompt:str, model=MODEL, max_tokens=1500) -> str:
         )
 
     blueprint_template = read_template(script_dir / "PromptFormat_MCPBlueprint.md")
-    agent_template = read_template(script_dir / "PromptFormat_AgentRun.md")
 
     system_prompt, user_message = build_messages(
-        user_prompt,
+        args.user_prompt,
         blueprint_template,
-        agent_template,
     )
+    print(system_prompt, user_message)
     response = call_claude_with_langchain(
         system_prompt,
         user_message,
         api_key=api_key,
-        model=model,
-        max_tokens=max_tokens
-
+        model=args.model,
+        max_tokens=args.max_tokens,
     )
-        
-    logger.info(f"response: {response}")
-    return response
+    print(response)
+    if args.test_output:
+        output_path = pathlib.Path(args.test_output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(response, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()

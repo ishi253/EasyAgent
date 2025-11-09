@@ -1,0 +1,24 @@
+```json
+{
+  "responsibilities": [
+    {
+      "name": "Research and gather information from various sources",
+      "inputs": "Search queries (text strings), topics of interest (text), specific questions (text), URLs for deeper investigation (optional)",
+      "operations": "search_web(query: string), extract_content(url: string), summarize_findings(content: string), verify_facts(claims: string[])",
+      "outputs": "Structured research results (JSON), summaries (text), source citations (array of URLs and titles), fact-check reports (JSON)"
+    },
+    {
+      "name": "Create and manage Google Docs content",
+      "inputs": "Document title (text), document ID (string, optional for existing docs), content to write (formatted text/markdown), section headers (array of strings)",
+      "operations": "create_document(title: string), open_document(doc_id: string), write_content(doc_id: string, content: string, position: optional), format_text(doc_id: string, formatting_rules: object), add_section(doc_id: string, header: string, content: string)",
+      "outputs": "Document ID (string), document URL (string), write confirmation (boolean), formatted document (Google Doc)"
+    },
+    {
+      "name": "Organize and structure information into document format",
+      "inputs": "Raw research data (JSON/text), document outline requirements (text), formatting preferences (style guide specifications)",
+      "operations": "create_outline(topics: array), organize_by_relevance(content: array), generate_citations(sources: array), create_table_of_contents(sections: array)",
+      "outputs": "Structured document outline (JSON), organized content blocks (array), formatted citations (text), table of contents (formatted text)"
+    }
+  ]
+}
+```

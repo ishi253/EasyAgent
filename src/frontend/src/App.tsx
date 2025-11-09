@@ -8,7 +8,6 @@ import { Play, Square, Link2 } from 'lucide-react'; // Added icons
 import { CreateAgentDialog } from './components/CreateAgentDialog';
 import { AgentLibraryPage } from './components/AgentLibraryPage';
 
-// --- INTERFACES ---
 export interface Agent {
   id: string;
   name: string;
@@ -287,6 +286,8 @@ export default function App() {
   const handleRunWorkflow = async () => {
     const workflowData = getFormattedWorkflowData();
     console.log("Workflow data to send:", workflowData);
+    // You can now send this `workflowData` object to your backend here.
+    // -------------
 
     if (nodes.length === 0 || connections.length === 0) return;
     
