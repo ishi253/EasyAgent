@@ -53,6 +53,21 @@ def find_gcd_multiple(numbers: list[int] = None) -> int:
     return result
 
 
+class GeneratedToolset:
+    """Expose generated MCP tools as bound methods that can be iterated over."""
+    _tool_names = ('find_gcd', 'find_gcd_multiple')
+
+    def __iter__(self):
+        for tool_name in self._tool_names:
+            yield getattr(self, tool_name)
+
+    def find_gcd(self, a: int = None, b: int = None) -> int:
+        return find_gcd(a, b)
+
+    def find_gcd_multiple(self, numbers: list[int] = None) -> int:
+        return find_gcd_multiple(numbers)
+
+
 if __name__ == "__main__":
     # stdio transport for agent runtimes
     mcp.run()
