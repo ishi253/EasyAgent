@@ -85,6 +85,7 @@ async def create_agent(agent: AgentCreateRequest):
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Unable to instantiate agent: {exc}") from exc
+    
     return {
         "message": "Agent registered successfully.",
         "agent": {
