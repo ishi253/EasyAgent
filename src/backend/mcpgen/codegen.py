@@ -36,11 +36,33 @@ def _safe_path(rel: str) -> Path:
 {% for imp in imports %}{{ imp }}
 {% endfor %}
 
+class GeneratedToolset:
+    {% if tool_names %}
+    _tool_names: tuple[str, ...] = ({% for name in tool_names %}"{{ name }}"{% if not loop.last %}, {% endif %}{% endfor %},)
+    {% else %}
+    _tool_names: tuple[str, ...] = ()
+    {% endif %}
+
+    def __iter__(self):
+        for name in self._tool_names:
+            yield getattr(self, name)
+
+{% for t in tools %}
+{% set method_block -%}
+{% if t.is_async %}async {% endif %}def {{ t.name }}({{ t.method_params_str }}) -> {{ t.return_type }}:
+{{ t.body_indented_method }}
+{%- endset %}
+{{ method_block | indent(4, True) }}
+
+{% endfor %}
+
+_toolset = GeneratedToolset()
+
 {% for t in tools %}
 @mcp.tool()
 {% if t.is_async %}async {% endif %}def {{ t.name }}({{ t.params_str }}) -> {{ t.return_type }}:
     """{{ t.description }}"""
-{{ t.body_indented }}
+    {{ "return await " if t.is_async else "return " }}{{ t.call_expr }}
 
 {% endfor %}
 
@@ -108,6 +130,8 @@ def generate(ir: IR, out_dir: Path) -> None:
             # Unknown runtime import; safer to fail than to inject arbitrary code
             raise ValueError(f"Dependency '{dep.name}' is not allow-listed for import.")
 
+    tool_names = tuple(tool.name for tool in ir.tools)
+
     # Tools context
     tools_ctx = []
     for tool in ir.tools:
@@ -123,22 +147,32 @@ def generate(ir: IR, out_dir: Path) -> None:
         ordered_params = [item for item in annotated_params if not item[1]] + [
             item for item in annotated_params if item[1]
         ]
+        call_args_parts: list[str] = []
         for p, has_default in ordered_params:
             if has_default:
                 params_parts.append(f"{p.name}: {p.type} = {repr(p.default)}")
             else:
                 params_parts.append(f"{p.name}: {p.type}")
+            call_args_parts.append(p.name)
 
         # body
         body_src = textwrap.dedent(tool.implementation).strip()
-        body_indented = _indent(body_src, 4)
+        body_indented_method = _indent(body_src, 4)
+        params_str = ", ".join(params_parts)
+        method_params_str = "self"
+        if params_str:
+            method_params_str = f"self, {params_str}"
+        call_args = ", ".join(call_args_parts)
+        call_expr = f"_toolset.{tool.name}({call_args})" if call_args else f"_toolset.{tool.name}()"
 
         tools_ctx.append({
             "name": tool.name,
             "description": tool.description,
-            "params_str": ", ".join(params_parts),
+            "params_str": params_str,
+            "method_params_str": method_params_str,
             "return_type": tool.return_type,
-            "body_indented": body_indented,
+            "body_indented_method": body_indented_method,
+            "call_expr": call_expr,
             "is_async": getattr(tool, "is_async", False),
         })
 
@@ -148,6 +182,7 @@ def generate(ir: IR, out_dir: Path) -> None:
         server_name=ir.server_name,
         description=ir.description,
         tools=tools_ctx,
+        tool_names=tool_names,
         imports=imports,
         environment=ir.environment,
     )
