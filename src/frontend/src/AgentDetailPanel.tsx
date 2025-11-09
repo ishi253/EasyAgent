@@ -17,11 +17,11 @@ export function AgentDetailPanel({ agent, onClose }: AgentDetailPanelProps) {
 
   return (
     // Fixed width so the panel content doesn't collapse during animation
-    <div className="flex flex-col h-full w-96">
+    <div className="flex flex-col h-full w-full">
       
       {/* Panel Header */}
-      <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-900">Agent Details</h3>
+      <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-slate-900 text-center">Agent Details</h3>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="w-5 h-5" />
         </Button>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Agent } from '../App';
 import {
   Dialog,
@@ -27,19 +27,32 @@ export function CreateAgentDialog({ open, onOpenChange, onCreateAgent }: CreateA
     category: '',
   });
 
+  // reset when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setFormData({ name: '', description: '', prompt: '', category: '' });
+    }
+  }, [open]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onCreateAgent(formData);
-    setFormData({ name: '', description: '', prompt: '', category: '' });
+
+    const newAgentObject = {
+    name: formData.name.trim(),
+    description: formData.description.trim(),
+    prompt: formData.prompt.trim(),
+    category: formData.category.trim(),
   };
 
-  const handleClose = () => {
-    onOpenChange(false);
+  console.log('Compiled agent data:', newAgentObject);
+
+    onCreateAgent(newAgentObject);
     setFormData({ name: '', description: '', prompt: '', category: '' });
+    onOpenChange(false); // close
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Agent</DialogTitle>
@@ -84,7 +97,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreateAgent }: CreateA
               <Label htmlFor="prompt">System Prompt</Label>
               <Textarea
                 id="prompt"
-                placeholder="You are an expert... Define the agent's role, behavior, and guidelines here."
+                placeholder="You are an expert..."
                 value={formData.prompt}
                 onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
                 rows={8}
@@ -96,7 +109,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreateAgent }: CreateA
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit">Create Agent</Button>

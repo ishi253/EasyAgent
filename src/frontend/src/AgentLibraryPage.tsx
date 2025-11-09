@@ -1,90 +1,93 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Agent } from '../App';
-import { Input } from './ui/input';
-import { Card } from './ui/card';
-import { Search, Sparkles } from 'lucide-react';
+import { Button } from './ui/button';
+import { Plus } from 'lucide-react';
+import { CreateAgentDialog } from './CreateAgentDialog';
 import { AgentDetailPanel } from './AgentDetailPanel';
 
 interface AgentLibraryPageProps {
   agents: Agent[];
+  onCreateAgent: (agent: Omit<Agent, 'id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
-export function AgentLibraryPage({ agents }: AgentLibraryPageProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+export function AgentLibraryPage({ agents, onCreateAgent }: AgentLibraryPageProps) {
+  const [open, setOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
-  const filteredAgents = agents.filter(agent =>
-    agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    agent.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    agent.description.toLowerCase().includes(searchQuery.toLowerCase())
+  const sortedAgents = useMemo(
+    () =>
+      [...agents].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
+    [agents]
   );
 
-  const selectedAgent = agents.find(agent => agent.id === selectedAgentId) || null;
-
   return (
-    <div className="flex-1 flex overflow-hidden">
-      
-      {/* Main content area (Grid) */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header with search */}
-        <div className="p-6 border-b border-slate-200 bg-white">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-2">Agent Library</h2>
-          <p className="text-slate-600 mb-4">
-            Browse, search, and manage all available AI agents.
-          </p>
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <Input
-              type="text"
-              placeholder="Search agents..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Top bar */}
+      <div className="px-6 pt-6 flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-center flex">Agent Library</h2>
+        <Button onClick={() => setOpen(true)} className="gap-2">
+          <Plus className="w-4 h-4" />
+          New Agent
+        </Button>
+      </div>
+
+      {/* Scrollable content area */}
+      <div className="flex-1 px-6 pb-6 mt-4 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+        {sortedAgents.length === 0 ? (
+          <div className="border border-dashed border-slate-300 rounded-xl p-10 text-slate-600 text-center">
+            <p className="font-medium mb-1">No agents yet</p>
+            <p>
+              Click <span className="font-semibold">New Agent</span> to create one.
+            </p>
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
+            {sortedAgents.map((a) => {
+              const active = a.id === selectedAgentId;
+              return (
+                <div key={a.id} className="space-y-2">
+                  <button
+                    onClick={() => setSelectedAgentId(active ? null : a.id)}
+                    className={`w-full border rounded-xl p-4 bg-white transition-all hover:shadow-sm focus:outline-none
+                      ${active ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'}`}
+                    aria-pressed={active}
+                  >
+                    <div className="flex flex-col items-center mb-2">
+                      <div className="font-medium text-slate-900">{a.name}</div>
+                      <div className="text-xs text-slate-500">{a.category}</div>
 
-        {/* Grid of "Boxes" */}
-        <div className="flex-1 overflow-y-hidden p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {filteredAgents.map((agent) => (
-            <Card
-              key={agent.id}
-              // --- MODIFIED ---
-              // Made it a fixed-size square (h-36 w-36)
-              // Kept flex-col and justify-center
-              className="p-4 flex flex-col items-center justify-center cursor-pointer h-36 w-36 hover:shadow-md hover:border-blue-500 transition-all"
-              onClick={() => setSelectedAgentId(agent.id)}
-            >
-              {/* --- MODIFIED --- */}
-              {/* Made icon container bigger (w-14 h-14) */}
-              <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shrink-0 mb-3">
-                {/* --- MODIFIED --- */}
-                {/* Made icon bigger (w-7 h-7) */}
-                <Sparkles className="w-7 h-7 text-white" />
-              </div>
-              
-              {/* --- MODIFIED --- */}
-              {/* Added mt-auto to push text down, and centered it */}
-              <div className="text-center">
-                <h4 className="text-slate-900 font-semibold truncate w-full">{agent.name}</h4>
-                <p className="text-slate-500 text-sm">{agent.category}</p>
-              </div>
-            </Card>
-          ))}
-        </div>
+                    </div>
+
+                    {/* Centered description */}
+                    <p className="text-sm text-slate-700 mt-2 line-clamp-3 text-center">
+                      {a.description}
+                    </p>
+                  </button>
+
+                  {/* Inline detail panel below the card */}
+                  {active && (
+                    <div className="border border-blue-200 rounded-lg bg-white p-4 shadow-sm text-center">
+                      <AgentDetailPanel agent={a} onClose={() => setSelectedAgentId(null)} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Detail Panel */}
-      <div className={`
-        transition-all duration-300 ease-in-out bg-white border-l border-slate-200 overflow-hidden
-        ${selectedAgent ? 'w-96' : 'w-0'}
-      `}>
-        <AgentDetailPanel 
-          agent={selectedAgent} 
-          onClose={() => setSelectedAgentId(null)}
-        />
-      </div>
-
+      {/* Create Dialog */}
+      <CreateAgentDialog
+        open={open}
+        onOpenChange={setOpen}
+        onCreateAgent={(agent) => {
+          onCreateAgent(agent);
+          setOpen(false);
+        }}
+      />
     </div>
   );
 }
