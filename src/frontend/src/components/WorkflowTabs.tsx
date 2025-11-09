@@ -33,7 +33,7 @@ interface WorkflowTabsProps {
   workflows: Workflow[];
   currentWorkflowId: string;
   onSelectWorkflow: (workflowId: string) => void;
-  onCreateWorkflow: (name: string) => void;
+  onCreateWorkflow: (name: string, context: string) => void; // updated
   onRenameWorkflow: (workflowId: string, newName: string) => void;
   onDeleteWorkflow: (workflowId: string) => void;
   onDuplicateWorkflow: (workflowId: string) => void;
@@ -53,11 +53,13 @@ export function WorkflowTabs({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const [newWorkflowName, setNewWorkflowName] = useState('');
+  const [newWorkflowContext, setNewWorkflowContext] = useState(''); // new
 
   const handleCreateWorkflow = () => {
     if (newWorkflowName.trim()) {
-      onCreateWorkflow(newWorkflowName.trim());
+      onCreateWorkflow(newWorkflowName.trim(), newWorkflowContext.trim());
       setNewWorkflowName('');
+      setNewWorkflowContext('');
       setIsCreateDialogOpen(false);
     }
   };
@@ -107,13 +109,19 @@ export function WorkflowTabs({
           >
             <button
               onClick={() => onSelectWorkflow(workflow.id)}
-              className="flex-1"
+              className="flex-1 text-left"
+              title={workflow.context ? `Context: ${workflow.context}` : undefined}
             >
               <span className={workflow.id === currentWorkflowId ? 'font-medium text-blue-700' : 'text-slate-700'}>
                 {workflow.name}
               </span>
+              {workflow.context ? (
+                <div className="text-xs text-slate-500 truncate max-w-[180px]">
+                  {workflow.context}
+                </div>
+              ) : null}
             </button>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="h-6 w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-slate-200 transition-colors">
@@ -141,7 +149,7 @@ export function WorkflowTabs({
             </DropdownMenu>
           </div>
         ))}
-        
+
         <Button
           variant="outline"
           size="sm"
@@ -159,7 +167,7 @@ export function WorkflowTabs({
           <DialogHeader>
             <DialogTitle>Create New Workflow</DialogTitle>
             <DialogDescription>
-              Give your workflow a descriptive name
+              Give your workflow a descriptive name and optional context.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -171,9 +179,20 @@ export function WorkflowTabs({
                 value={newWorkflowName}
                 onChange={(e) => setNewWorkflowName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleCreateWorkflow();
-                  }
+                  if (e.key === 'Enter') handleCreateWorkflow();
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="workflow-context">Context / Situation</Label>
+              <Input
+                id="workflow-context"
+                placeholder="e.g., Q4 marketing campaign, data cleanup, onboarding"
+                value={newWorkflowContext}
+                onChange={(e) => setNewWorkflowContext(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateWorkflow();
                 }}
               />
             </div>
@@ -206,9 +225,7 @@ export function WorkflowTabs({
                 value={newWorkflowName}
                 onChange={(e) => setNewWorkflowName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleRenameWorkflow();
-                  }
+                  if (e.key === 'Enter') handleRenameWorkflow();
                 }}
               />
             </div>
@@ -217,7 +234,7 @@ export function WorkflowTabs({
             <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleRenameWorkflow} disabled={!newWorkflowName.trim()}>
+              <Button onClick={handleRenameWorkflow} disabled={!newWorkflowName.trim()}>
               Rename
             </Button>
           </DialogFooter>
