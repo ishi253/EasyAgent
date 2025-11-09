@@ -1,0 +1,61 @@
+{
+  "server_name": "simple-math",
+  "description": "A simple math server that performs basic arithmetic operations",
+  "tools": [
+    {
+      "name": "add",
+      "description": "Takes two numbers as parameters and returns their sum",
+      "parameters": [
+        {
+          "name": "num1",
+          "type": "float",
+          "description": "First number to add",
+          "default": null
+        },
+        {
+          "name": "num2",
+          "type": "float",
+          "description": "Second number to add",
+          "default": null
+        }
+      ],
+      "return_type": "float",
+      "implementation": "    result = num1 + num2\n    return result",
+      "is_async": false
+    }
+  ],
+  "dependencies": [],
+  "environment": {
+    "workdir_required": false,
+    "network_access": false
+  },
+  "tests": [
+    {
+      "tool": "add",
+      "args": {
+        "num1": 5,
+        "num2": 3
+      },
+      "expected_result": 8,
+      "assertion": "equals"
+    },
+    {
+      "tool": "add",
+      "args": {
+        "num1": -10,
+        "num2": 5
+      },
+      "expected_result": -5,
+      "assertion": "equals"
+    },
+    {
+      "tool": "add",
+      "args": {
+        "num1": 3.5,
+        "num2": 2.5
+      },
+      "expected_result": 6.0,
+      "assertion": "equals"
+    }
+  ]
+}
