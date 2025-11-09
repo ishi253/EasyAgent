@@ -37,34 +37,32 @@ Our core idea: **“If you can describe it, you can deploy it.”**
 EasyAgent's architecture is designed for speed and scalability. A React frontend communicates with a Node.js API, which manages agent creation. Workflow execution is handled by a Red Panda streaming hub that orchestrates data flow between containerized agents.
 
 graph LR
-    subgraph DesignTime["Design Time (Web App)"]
-        A[Browser UI (React)] --> B[API Server (Node.js)]
-        B --> F[(SQLite DB)]
-        A --> C[Text Input]
-        C --> D[Claude LLM]
-        D --> E[MCP Blueprint]
-        E --> F
-        A --> G[Workflow Canvas]
-    end
+    %% Design Time
+    A[Browser UI (React)] --> B[API Server (Node.js)]
+    B --> C[(SQLite DB)]
+    A --> D[Text Input]
+    D --> E[Claude LLM]
+    E --> F[MCP Blueprint]
+    F --> C
+    A --> G[Workflow Canvas]
 
-    subgraph Runtime["Runtime Execution"]
-        G --> H[Execution Planner]
-        H --> I[Red Panda (Orchestrator & Data Hub)]
-        I --> J[Agent 1]
-        I --> K[Agent 2]
-        I --> L[Agent 3]
-        J --> I
-        K --> I
-        L --> I
-        I --> A
-    end
+    %% Runtime
+    G --> H[Execution Planner]
+    H --> I[Red Panda Orchestrator]
+    I --> J[Agent 1]
+    I --> K[Agent 2]
+    I --> L[Agent 3]
+    J --> I
+    K --> I
+    L --> I
+    I --> M[Browser UI (Results)]
 
-    subgraph AgentServices["Agent Services"]
-        J --> M[MCP Server]
-        K --> M
-        L --> M
-        M --> N[Tools / APIs / DBs]
-    end
+    %% Agent Services
+    J --> N[MCP Server]
+    K --> N
+    L --> N
+    N --> O[External Tools / APIs / DBs]
+
 
 
 
