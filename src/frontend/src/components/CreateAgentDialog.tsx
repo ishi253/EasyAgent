@@ -1,0 +1,108 @@
+import { useState } from 'react';
+import { Agent } from '../App';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+
+interface CreateAgentDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreateAgent: (agent: Omit<Agent, 'id' | 'createdAt' | 'updatedAt'>) => void;
+}
+
+export function CreateAgentDialog({ open, onOpenChange, onCreateAgent }: CreateAgentDialogProps) {
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    prompt: '',
+    category: '',
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onCreateAgent(formData);
+    setFormData({ name: '', description: '', prompt: '', category: '' });
+  };
+
+  const handleClose = () => {
+    onOpenChange(false);
+    setFormData({ name: '', description: '', prompt: '', category: '' });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create New Agent</DialogTitle>
+          <DialogDescription>
+            Define your AI agent's purpose and behavior with a custom prompt
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Agent Name</Label>
+              <Input
+                id="name"
+                placeholder="e.g., Content Writer"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Input
+                id="category"
+                placeholder="e.g., Writing, Development, Marketing"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Brief description of what this agent does"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={2}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="prompt">System Prompt</Label>
+              <Textarea
+                id="prompt"
+                placeholder="You are an expert... Define the agent's role, behavior, and guidelines here."
+                value={formData.prompt}
+                onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
+                rows={8}
+                required
+              />
+              <p className="text-slate-500">
+                This prompt defines how the agent will behave and respond to requests
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button type="submit">Create Agent</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
