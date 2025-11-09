@@ -19,4 +19,6 @@ mcpgen.egg-info/dependency_links.txt
 mcpgen.egg-info/entry_points.txt
 mcpgen.egg-info/requires.txt
 mcpgen.egg-info/top_level.txt
+tests/test_agent_create_mcp.py
 tests/test_app.py
+tests/test_mcpgen_toolset.py
