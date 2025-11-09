@@ -9,32 +9,37 @@ from src.backend.agents.agent import createAgent
 from src.backend.TextProcessing.call_llm import execute as generate_agent_prompt
 from src.backend.FAST.db import list_agents as getAllAgents, save_agent as persist_agent
 from collections import defaultdict, deque
+from src.backend.FAST.demo_stream_dag import run_stream_demo
 app = FastAPI()
 
-def dag_width(graph):
+def dag_width_from_sets(vertices, edges):
     """
-    Compute peak parallelism = width = size of a maximum antichain.
-    Input: graph as {u: [v1, v2, ...]} for a DAG. Nodes can be any hashables.
-    Output: integer width.
+    Peak parallelism (width) of a DAG given vertices and edges.
 
-    Complexity:
-      - Transitive closure via n DFS/BFS: O(n*(n+m)) time, O(n^2) space.
-      - Hopcroft–Karp on closure graph: O(n^2 * sqrt(n)) time.
+    Args:
+      vertices: iterable of node ids (hashable).
+      edges: iterable of (u, v) pairs for directed edges u -> v.
+
+    Returns:
+      int: size of a maximum antichain = max number of ops runnable at once.
+
+    Notes:
+      - Assumes the input graph is a DAG.
+      - Time: O(nm + n^2 * sqrt(n)) worst case. Space: O(n^2).
     """
-    # --- relabel to 0..n-1 ---
-    nodes = list(graph.keys() | {v for vs in graph.values() for v in vs})
-    idx = {u: i for i, u in enumerate(nodes)}
-    n = len(nodes)
+    V = list(dict.fromkeys(vertices))
+    idx = {u: i for i, u in enumerate(V)}
+    n = len(V)
+
+    # adjacency
     adj = [[] for _ in range(n)]
-    for u, vs in graph.items():
-        iu = idx[u]
-        for v in vs:
-            adj[iu].append(idx[v])
+    for u, v in edges:
+        iu = idx[u]; iv = idx[v]
+        adj[iu].append(iv)
 
-    # --- transitive closure: reach[u] = set of v reachable from u (excluding u) ---
+    # transitive closure: reach[u] = set of v reachable from u
     reach = [set() for _ in range(n)]
     for s in range(n):
-        # iterative DFS (stack) is fine; BFS also fine
         stack = list(adj[s])
         seen = set(stack)
         while stack:
@@ -45,11 +50,10 @@ def dag_width(graph):
                     seen.add(y)
                     stack.append(y)
 
-    # --- build bipartite graph on closure edges: left U = 0..n-1, right V = 0..n-1 ---
-    # edges: (u in U) -> (v in V) iff v in reach[u]
-    bp_adj = [list(sorted(reach[u])) for u in range(n)]
+    # bipartite graph: U=0..n-1, V=0..n-1, edge u->v iff v in reach[u]
+    bp_adj = [sorted(reach[u]) for u in range(n)]
 
-    # --- Hopcroft–Karp maximum matching U->V ---
+    # Hopcroft–Karp
     INF = 10**18
     pairU = [-1] * n
     pairV = [-1] * n
@@ -63,17 +67,17 @@ def dag_width(graph):
                 q.append(u)
             else:
                 dist[u] = INF
-        found_free = False
+        found_augmenting = False
         while q:
             u = q.popleft()
             for v in bp_adj[u]:
                 pu = pairV[v]
                 if pu == -1:
-                    found_free = True
+                    found_augmenting = True
                 elif dist[pu] == INF:
                     dist[pu] = dist[u] + 1
                     q.append(pu)
-        return found_free
+        return found_augmenting
 
     def dfs(u):
         for v in bp_adj[u]:
@@ -90,9 +94,8 @@ def dag_width(graph):
         for u in range(n):
             if pairU[u] == -1 and dfs(u):
                 matching += 1
+    return n - matching
 
-    width = n - matching
-    return width
 # Allow the frontend dev server to call this API from a different origin.
 app.add_middleware(
     CORSMiddleware,
@@ -119,19 +122,15 @@ class AgentCreateRequest(BaseModel):
 async def root(workflow: WorkflowStruct):
     if not workflow.nodes:
         raise HTTPException(status_code=400, detail="Workflow must include at least one node.")
-
-    processed_nodes = [{"id": node_id, "status": "received"} for node_id in workflow.nodes]
-
+    nodes = workflow.nodes
+    edges = workflow.edges
+    edgeList = [(edge[0], edge[1]) for edge in edges]
+    maxWidth = dag_width_from_sets(nodes, edgeList)
+    retrVal = run_stream_demo(nodes, edgeList, num_workers=maxWidth)
     # TODO call function
     # Edge set looks like : [(agentID, agentID),...]
     # Need: List of nodes, list of edges, max parallelism (iterate through source verticies and count)
-    return {
-        "message": "Workflow received!!!",
-        "workflowId": workflow.workflow,
-        "nodeCount": len(workflow.nodes),
-        "edgeCount": len(workflow.edges),
-        "nodes": processed_nodes,
-    }
+    return retrVal
 
 
 # Create Agent
@@ -168,7 +167,7 @@ async def create_agent(agent: AgentCreateRequest):
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Unable to instantiate agent: {exc}") from exc
-    saveAgent(created_agent.id, created_agent, created_agent.prompt, created_agent.tools, created_agent.file_path)
+    persist_agent(created_agent.id, created_agent, created_agent.prompt, created_agent.tools, created_agent.file_path)
     return {    
         "message": "Agent registered successfully.",
         "agent": {
