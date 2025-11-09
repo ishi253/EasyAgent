@@ -139,7 +139,6 @@ def save_agent(
     name: str,
     prompt: str,
     tools: List[str],
-    need_mcp: bool = False,
     file_path: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Insert or update an agent configuration."""

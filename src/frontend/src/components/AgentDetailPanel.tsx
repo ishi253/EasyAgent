@@ -1,7 +1,7 @@
 import { Agent } from '../App';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { X, Sparkles } from 'lucide-react';
+import { Box, Chip, IconButton, Stack, Typography, Paper } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 interface AgentDetailPanelProps {
   agent: Agent | null;
@@ -16,46 +16,55 @@ export function AgentDetailPanel({ agent, onClose }: AgentDetailPanelProps) {
   }
 
   return (
-    // Fixed width so the panel content doesn't collapse during animation
-    <div className="flex flex-col h-full w-full">
-      
-      {/* Panel Header */}
-      <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-900 text-center">Agent Details</h3>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="w-5 h-5" />
-        </Button>
-      </div>
+    <Box display="flex" flexDirection="column" gap={3}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Typography variant="h6" fontWeight={600}>
+          Agent Details
+        </Typography>
+        <IconButton size="small" onClick={onClose}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Stack>
 
-      {/* Panel Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        
-        {/* Agent Info Header */}
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shrink-0">
-            <Sparkles className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h4 className="text-xl font-bold text-slate-900">{agent.name}</h4>
-            <Badge variant="secondary">{agent.category}</Badge>
-          </div>
-        </div>
+      <Stack direction="row" spacing={2} alignItems="center">
+        <Box
+          width={48}
+          height={48}
+          borderRadius={2}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          sx={{ background: 'linear-gradient(135deg,#3b82f6,#a855f7)', color: '#fff' }}
+        >
+          <AutoAwesomeIcon />
+        </Box>
+        <Box>
+          <Typography variant="subtitle1" fontWeight={700}>
+            {agent.name}
+          </Typography>
+          <Chip label={agent.category} size="small" color="secondary" variant="outlined" />
+        </Box>
+      </Stack>
 
-        {/* Description */}
-        <div>
-          <label className="text-sm font-medium text-slate-500">Description</label>
-          <p className="text-slate-700 mt-1">{agent.description}</p>
-        </div>
+      <Box>
+        <Typography variant="caption" color="text.secondary">
+          Description
+        </Typography>
+        <Typography variant="body2" color="text.primary">
+          {agent.description}
+        </Typography>
+      </Box>
 
-        {/* System Prompt */}
-        <div>
-          <label className="text-sm font-medium text-slate-500">System Prompt</label>
-          <blockquote className="mt-1 p-4 bg-slate-50 border-l-4 border-slate-300 text-slate-600 rounded-md whitespace-pre-wrap">
+      <Box>
+        <Typography variant="caption" color="text.secondary">
+          System Prompt
+        </Typography>
+        <Paper variant="outlined" sx={{ mt: 1, p: 2, backgroundColor: 'rgba(99,102,241,0.05)' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
             {agent.prompt}
-          </blockquote>
-        </div>
-        
-      </div>
-    </div>
+          </Typography>
+        </Paper>
+      </Box>
+    </Box>
   );
 }

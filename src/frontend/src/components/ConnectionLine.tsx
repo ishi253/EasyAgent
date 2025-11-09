@@ -1,5 +1,5 @@
-import { Button } from './ui/button';
-import { X } from 'lucide-react';
+import { IconButton } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 
 interface ConnectionLineProps {
   id: string;
@@ -37,7 +37,7 @@ export function ConnectionLine({
   const markerId = `arrowhead-${id}`;
 
   return (
-    <g className="connection-group">
+    <g>
       {/* Arrow marker definition */}
       <defs>
         <marker
@@ -51,7 +51,6 @@ export function ConnectionLine({
           <path
             d="M 0 0 L 10 5 L 0 10 L 2 5 Z"
             fill={isActive ? '#3b82f6' : '#475569'}
-            className="transition-all duration-300"
           />
         </marker>
       </defs>
@@ -62,7 +61,7 @@ export function ConnectionLine({
         fill="none"
         stroke="transparent"
         strokeWidth="20"
-        className="cursor-pointer"
+        style={{ cursor: 'pointer' }}
       />
       
       {/* Visible path with shadow for depth */}
@@ -82,7 +81,6 @@ export function ConnectionLine({
         fill="none"
         stroke={isActive ? '#3b82f6' : '#475569'}
         strokeWidth={isActive ? '2.5' : '2'}
-        className="transition-all duration-300"
         markerEnd={`url(#${markerId})`}
       />
       
@@ -103,19 +101,31 @@ export function ConnectionLine({
       
       {/* Delete button */}
       <foreignObject
-        x={midX - 10}
-        y={midY - 10}
-        width="20"
-        height="20"
-        className="pointer-events-auto"
+        x={midX - 14}
+        y={midY - 14}
+        width="28"
+        height="28"
+        style={{ pointerEvents: 'auto' }}
       >
-        <button
+        <IconButton
+          size="small"
           onClick={() => onDelete(id)}
-          className="w-5 h-5 rounded-full bg-white border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center opacity-0 hover:opacity-100 transition-all shadow-md"
-          style={{ fontSize: '14px', fontWeight: 'bold' }}
+          sx={{
+            width: 28,
+            height: 28,
+            backgroundColor: 'background.paper',
+            border: '1px solid',
+            borderColor: 'error.main',
+            color: 'error.main',
+            boxShadow: 2,
+            '&:hover': {
+              backgroundColor: 'error.main',
+              color: '#fff',
+            },
+          }}
         >
-          ×
-        </button>
+          <CloseIcon fontSize="inherit" />
+        </IconButton>
       </foreignObject>
     </g>
   );

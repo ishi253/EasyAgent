@@ -1,15 +1,19 @@
 import { Agent } from '../App';
 import {
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
-} from './ui/dialog';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Edit, Calendar } from 'lucide-react';
+  DialogContent,
+  DialogActions,
+  Button,
+  Chip,
+  Stack,
+  Typography,
+  Grid,
+  Box,
+  Paper,
+} from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 
 interface ViewAgentDialogProps {
   agent: Agent;
@@ -30,51 +34,58 @@ export function ViewAgentDialog({ agent, open, onOpenChange, onEdit }: ViewAgent
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="space-y-2">
-            <Badge variant="secondary" className="w-fit">
-              {agent.category}
-            </Badge>
-            <DialogTitle>{agent.name}</DialogTitle>
-            <DialogDescription>{agent.description}</DialogDescription>
-          </div>
-        </DialogHeader>
-        <div className="space-y-6 py-4">
-          <div>
-            <h4 className="mb-3 text-slate-900">System Prompt</h4>
-            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-              <p className="text-slate-700 whitespace-pre-wrap">{agent.prompt}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-            <div className="flex items-center gap-2 text-slate-600">
-              <Calendar className="w-4 h-4" />
-              <div>
-                <p className="text-slate-500">Created</p>
-                <p>{formatDate(agent.createdAt)}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-slate-600">
-              <Calendar className="w-4 h-4" />
-              <div>
-                <p className="text-slate-500">Last Updated</p>
-                <p>{formatDate(agent.updatedAt)}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-          <Button onClick={onEdit} className="gap-2">
-            <Edit className="w-4 h-4" />
-            Edit Agent
-          </Button>
-        </DialogFooter>
+    <Dialog open={open} onClose={() => onOpenChange(false)} maxWidth="md" fullWidth>
+      <DialogTitle>{agent.name}</DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={3}>
+          <Chip label={agent.category} color="secondary" variant="outlined" sx={{ width: 'fit-content' }} />
+          <Typography variant="body1" color="text.secondary">
+            {agent.description}
+          </Typography>
+          <Box>
+            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              System Prompt
+            </Typography>
+            <Paper variant="outlined" sx={{ p: 2, backgroundColor: 'rgba(148,163,184,0.08)' }}>
+              <Typography variant="body2" color="text.primary" sx={{ whiteSpace: 'pre-wrap' }}>
+                {agent.prompt}
+              </Typography>
+            </Paper>
+          </Box>
+          <Grid container spacing={2} pt={2} borderTop="1px solid" borderColor="divider">
+            <Grid item xs={12} sm={6}>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <CalendarTodayIcon fontSize="small" color="action" />
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Created
+                  </Typography>
+                  <Typography variant="body2">{formatDate(agent.createdAt)}</Typography>
+                </Box>
+              </Stack>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <CalendarTodayIcon fontSize="small" color="action" />
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Last Updated
+                  </Typography>
+                  <Typography variant="body2">{formatDate(agent.updatedAt)}</Typography>
+                </Box>
+              </Stack>
+            </Grid>
+          </Grid>
+        </Stack>
       </DialogContent>
+      <DialogActions>
+        <Button color="inherit" onClick={() => onOpenChange(false)}>
+          Close
+        </Button>
+        <Button variant="contained" startIcon={<EditIcon fontSize="small" />} onClick={onEdit}>
+          Edit Agent
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }
