@@ -1,0 +1,2 @@
+[console_scripts]
+mcpgen = mcpgen.__main__:main
