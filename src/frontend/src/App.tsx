@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { WorkflowCanvas } from './components/WorkflowCanvas';
 import { AgentSidebar } from './components/AgentSidebar';
 import { StreamingPanel } from './components/StreamingPanel';
@@ -407,6 +407,14 @@ export default function App() {
               >
                 Clear Canvas
               </Button>
+
+               <Button
+      onClick={handleStopWorkflow}   // create this handler
+      variant="outline"
+      disabled={isRunning || nodes.length === 0}
+    >
+      Save Workflow
+    </Button>
               {isRunning ? (
                 <Button onClick={handleStopWorkflow} variant="destructive" className="gap-2">
                   <Square className="w-4 h-4" />
@@ -417,7 +425,11 @@ export default function App() {
                   <Play className="w-4 h-4" />
                   Run Workflow
                 </Button>
+
+
+              
               )}
+                             
             </div>
           )}
         </div>
