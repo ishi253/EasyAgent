@@ -14,8 +14,6 @@ export interface Agent {
   description: string;
   prompt: string;
   category: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface WorkflowNode {
@@ -64,9 +62,7 @@ export default function App() {
       description: 'Gathers and analyzes information',
       prompt:
         'You are a research specialist. Analyze the input and extract key insights, facts, and relevant information. Present findings in a structured format.',
-      category: 'Research',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      category: 'Research'
     },
     {
       id: '5',
@@ -74,9 +70,7 @@ export default function App() {
       description: 'Analyzes datasets to find trends and insights.',
       prompt:
         'You are a data analyst. Given a dataset (CSV or JSON), perform statistical analysis, identify key trends, and return a summary of your findings.',
-      category: 'Data',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      category: 'Data'
     },
     {
       id: '6',
@@ -84,9 +78,7 @@ export default function App() {
       description: 'Organizes a list of tasks based on priority.',
       prompt:
         'You are an expert project manager. Take the following list of tasks and organize them by priority (high, medium, low) and logical order of completion. Return the prioritized list.',
-      category: 'Planning',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      category: 'Planning'
     },
     {
       id: '4',
@@ -94,9 +86,7 @@ export default function App() {
       description: 'Generates code from specifications',
       prompt:
         'You are a senior software engineer. Convert specifications and requirements into clean, well-documented code following best practices.',
-      category: 'Development',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      category: 'Development'
     },
   ]);
 
@@ -186,8 +176,6 @@ export default function App() {
     const newAgent: Agent = {
       ...agent,
       id: Date.now().toString(), //FIX THIS
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
     setAgents((prev) => [...prev, newAgent]);
   };
