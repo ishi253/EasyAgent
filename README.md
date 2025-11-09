@@ -55,9 +55,8 @@ AI & Frontend
 - React Flow - Workflow canvas component
 - MCP (Model Context Protocol) - Standard for agent tools
 
-## 🏆 HackMIT 2025 Submission
 
-Built with ❤️ by Team Veritas at HackMIT 2025
+
 
 ### 🚀 Quick Start
 Prerequisites
