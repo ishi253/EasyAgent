@@ -167,6 +167,12 @@ def list_agents() -> List[Dict[str, Any]]:
     return [_row_to_agent(row) for row in rows]
 
 
+def list_agents_without_ids() -> List[Dict[str, Any]]:
+    """Return all agent records without their agent_id field."""
+    agents = list_agents()
+    return [{k: v for k, v in agent.items()} for agent in agents]
+
+
 def delete_agent(agent_id: str) -> bool:
     """Remove an agent. Returns True if a row was deleted."""
     with get_agent_connection() as conn:
@@ -228,6 +234,12 @@ def list_workflows() -> List[Dict[str, Any]]:
     with get_workflow_connection() as conn:
         rows = conn.execute("SELECT * FROM workflows ORDER BY created_at ASC").fetchall()
     return [_row_to_workflow(row) for row in rows]
+
+
+def list_workflows_without_ids() -> List[Dict[str, Any]]:
+    """Return workflow definitions without their workflow_id field."""
+    workflows = list_workflows()
+    return [{k: v for k, v in workflow.items()} for workflow in workflows]
 
 
 def delete_workflow(workflow_id: str) -> bool:
